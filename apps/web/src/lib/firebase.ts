@@ -31,7 +31,13 @@ export function observeFirebaseUser(listener: (user: User | null) => void): () =
     listener(null);
     return () => undefined;
   }
-  return onAuthStateChanged(firebaseAuth, listener);
+  return onAuthStateChanged(firebaseAuth, (user) => {
+    if (user?.isAnonymous) {
+      void signOut(firebaseAuth).catch(() => listener(null));
+      return;
+    }
+    listener(user);
+  });
 }
 
 export async function createStillAccount(email: string, password: string): Promise<User> {

@@ -2,7 +2,8 @@ param(
   [string]$ProjectId = 'still-scriptures',
   [string]$Region = 'asia-south1',
   [string]$Service = 'still-api',
-  [string]$Queue = 'still-analysis'
+  [string]$Queue = 'still-analysis',
+  [string]$ImageTag = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -147,7 +148,8 @@ try {
 
   if (-not (Test-GcloudResource artifacts repositories describe still --project $ProjectId --location $Region --format='value(name)')) { Invoke-Gcloud artifacts repositories create still --project $ProjectId --location $Region --repository-format=docker --description='STILL production images' --quiet }
 
-  $tag = (& git rev-parse --short=12 HEAD).Trim()
+  $tag = if ($ImageTag) { $ImageTag } else { (& git rev-parse --short=12 HEAD).Trim() }
+  if ($tag -notmatch '^[a-zA-Z0-9._-]+$') { throw 'ImageTag contains unsupported characters.' }
   $image = "$Region-docker.pkg.dev/$ProjectId/still/still-api:$tag"
   if (-not (Test-GcloudResource artifacts docker images describe $image --project $ProjectId --format='value(image_summary.digest)')) {
     Invoke-Gcloud builds submit . --project $ProjectId --config cloudbuild.yaml --substitutions="_REGION=$Region,_TAG=$tag" --quiet
