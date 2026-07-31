@@ -1,5 +1,14 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, signInAnonymously, type User } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
+  type User,
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { clientConfig, firebaseConfigured } from './config';
@@ -14,7 +23,6 @@ export const firebaseStorage = firebaseApp ? getStorage(firebaseApp) : undefined
 
 export async function getIdToken(): Promise<string | undefined> {
   if (!firebaseAuth) return undefined;
-  if (!firebaseAuth.currentUser) await signInAnonymously(firebaseAuth);
   return firebaseAuth.currentUser?.getIdToken();
 }
 
@@ -26,15 +34,37 @@ export function observeFirebaseUser(listener: (user: User | null) => void): () =
   return onAuthStateChanged(firebaseAuth, listener);
 }
 
-export async function signInToStill(): Promise<void> {
+export async function createStillAccount(email: string, password: string): Promise<User> {
   if (!firebaseAuth) throw new Error('Firebase Authentication is not configured in this environment.');
-  if (firebaseAuth.currentUser) return;
-  await signInAnonymously(firebaseAuth);
+  const credential = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
+  await sendEmailVerification(credential.user);
+  return credential.user;
 }
 
-export async function signInJudgeAnonymously(): Promise<void> {
-  if (!firebaseAuth) throw new Error('Firebase Authentication is not configured for this demo.');
-  if (!firebaseAuth.currentUser) await signInAnonymously(firebaseAuth);
+export async function signInToStill(email: string, password: string): Promise<User> {
+  if (!firebaseAuth) throw new Error('Firebase Authentication is not configured in this environment.');
+  return (await signInWithEmailAndPassword(firebaseAuth, email.trim(), password)).user;
+}
+
+export async function signOutOfStill(): Promise<void> {
+  if (firebaseAuth) await signOut(firebaseAuth);
+}
+
+export async function sendStillPasswordReset(email: string): Promise<void> {
+  if (!firebaseAuth) throw new Error('Firebase Authentication is not configured in this environment.');
+  await sendPasswordResetEmail(firebaseAuth, email.trim());
+}
+
+export async function resendStillVerification(): Promise<void> {
+  if (!firebaseAuth?.currentUser) throw new Error('Sign in before requesting another verification email.');
+  await sendEmailVerification(firebaseAuth.currentUser);
+}
+
+export async function refreshStillUser(): Promise<User | null> {
+  if (!firebaseAuth?.currentUser) return null;
+  await firebaseAuth.currentUser.reload();
+  await firebaseAuth.currentUser.getIdToken(true);
+  return firebaseAuth.currentUser;
 }
 
 export function activeFirebaseUid(): string | undefined {

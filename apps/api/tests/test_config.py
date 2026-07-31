@@ -9,22 +9,27 @@ from app.schemas import NarrativeState, SourceKind, SourceRecord
 
 def test_production_refuses_fixtures() -> None:
     with pytest.raises(ValidationError):
-        Settings(app_mode="production", use_provider_fixtures=True)
+        Settings(app_mode="production", use_provider_fixtures=True, access_coupon_code="TEST-ACCESS-CODE")
 
 
 def test_production_refuses_local_worker() -> None:
     with pytest.raises(ValidationError):
-        Settings(app_mode="production", local_worker_enabled=True)
+        Settings(app_mode="production", local_worker_enabled=True, access_coupon_code="TEST-ACCESS-CODE")
 
 
 def test_production_requires_authoritative_youtube_validation() -> None:
     with pytest.raises(ValidationError):
-        Settings(app_mode="production", youtube_api_key=None, gloo_max_candidates_per_project=1)
+        Settings(app_mode="production", youtube_api_key=None, gloo_max_candidates_per_project=1, access_coupon_code="TEST-ACCESS-CODE")
 
 
 def test_production_refuses_more_than_one_gloo_candidate() -> None:
     with pytest.raises(ValidationError):
-        Settings(app_mode="production", youtube_api_key="restricted-key", gloo_max_candidates_per_project=2)
+        Settings(app_mode="production", youtube_api_key="restricted-key", gloo_max_candidates_per_project=2, access_coupon_code="TEST-ACCESS-CODE")
+
+
+def test_production_requires_private_access_code() -> None:
+    with pytest.raises(ValidationError):
+        Settings(app_mode="production", youtube_api_key="restricted-key", access_coupon_code=None)
 
 
 def test_missing_gemini_credentials_fail_transparently() -> None:

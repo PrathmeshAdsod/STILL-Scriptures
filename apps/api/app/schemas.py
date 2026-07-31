@@ -40,6 +40,25 @@ class AnalysisOutcome(StrEnum):
     ACCEPT = "ACCEPT"
 
 
+class AccountPlan(StrEnum):
+    FREE = "FREE"
+    ACCESS = "ACCESS"
+
+
+class AccountStatus(BaseModel):
+    plan: AccountPlan
+    max_video_duration_seconds: int
+    analysis_limit: int
+    analyses_used: int
+    analyses_remaining: int
+    usage_period: Literal["lifetime", "day"]
+    usage_resets_at: datetime | None = None
+
+
+class AccessCodeRequest(BaseModel):
+    code: str = Field(min_length=8, max_length=200)
+
+
 class ModalityStatus(StrEnum):
     FULL_AUDIOVISUAL = "FULL_AUDIOVISUAL"
     DEGRADED_AUDIO_MISSING = "DEGRADED_AUDIO_MISSING"

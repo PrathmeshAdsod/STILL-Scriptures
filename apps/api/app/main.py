@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hmac
 from contextlib import asynccontextmanager
 from uuid import UUID
 
@@ -13,6 +14,8 @@ from .errors import ErrorCode, api_error, not_found
 from .repositories import AnalysisReservationResult, FirestoreDataStore, InMemoryDataStore
 from .routing import ModelUsageBudgetLedger, VideoModelRouter, load_model_policies
 from .schemas import (
+    AccessCodeRequest,
+    AccountStatus,
     AnalysisJob,
     Project,
     ProjectCreateResponse,
@@ -91,6 +94,30 @@ async def ready(request: Request) -> dict:
     return {"status": "ready", "app_mode": settings.app_mode, "fixtures_enabled": settings.use_provider_fixtures}
 
 
+async def account_status_for(request: Request, user_id: str) -> AccountStatus:
+    settings: Settings = request.app.state.settings
+    return await store_for(request).account_status(
+        owner_id=user_id,
+        free_limit=settings.free_analysis_lifetime_limit,
+        access_daily_limit=settings.access_analysis_daily_limit,
+        max_duration_seconds=settings.max_video_duration_seconds,
+    )
+
+
+@app.get("/api/account", response_model=AccountStatus)
+async def get_account(request: Request, user_id: str = Depends(current_user)) -> AccountStatus:
+    return await account_status_for(request, user_id)
+
+
+@app.post("/api/account/access-code", response_model=AccountStatus)
+async def redeem_access_code(payload: AccessCodeRequest, request: Request, user_id: str = Depends(current_user)) -> AccountStatus:
+    configured_code = request.app.state.settings.access_coupon_code
+    if not configured_code or not hmac.compare_digest(payload.code.strip(), configured_code):
+        raise api_error(ErrorCode.FORBIDDEN, "That access code is not valid.", 403)
+    await store_for(request).grant_access(owner_id=user_id)
+    return await account_status_for(request, user_id)
+
+
 @app.post("/api/projects", response_model=ProjectCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(payload: SourceCreateRequest, request: Request, user_id: str = Depends(current_user)) -> ProjectCreateResponse:
     project = Project(owner_id=user_id, title=payload.title, status=ProjectStatus.SOURCE_PENDING)
@@ -160,13 +187,19 @@ async def start_analysis(project_id: UUID, request: Request, idempotency_key: st
     reservation = await store_for(request).reserve_analysis(
         owner_id=user_id,
         project_id=project.id,
-        per_user_limit=settings.max_analysis_per_user_per_day,
+        free_limit=settings.free_analysis_lifetime_limit,
+        access_daily_limit=settings.access_analysis_daily_limit,
         global_limit=settings.max_analysis_global_per_day,
     )
     if reservation == AnalysisReservationResult.USER_LIMIT_REACHED:
-        raise api_error(ErrorCode.USAGE_LIMIT_REACHED, "This guest session has used today's real-analysis allowance. The verified sample remains available.", 429)
+        account = await account_status_for(request, user_id)
+        if account.usage_period == "lifetime":
+            message = "Your Free plan analysis has already been used. Enter an Access Pass code to continue."
+        else:
+            message = "Your Access Pass has used today's two analyses. The allowance resets at 00:00 UTC."
+        raise api_error(ErrorCode.USAGE_LIMIT_REACHED, message, 429)
     if reservation == AnalysisReservationResult.GLOBAL_LIMIT_REACHED:
-        raise api_error(ErrorCode.USAGE_LIMIT_REACHED, "Today's protected live-analysis budget is full. The verified sample remains available.", 429)
+        raise api_error(ErrorCode.USAGE_LIMIT_REACHED, "STILL has reached today's protected processing capacity. Please return after 00:00 UTC.", 429)
     job = AnalysisJob(project_id=project.id, owner_id=user_id, idempotency_key=idempotency_key)
     project.current_job_id = job.id
     project.status = ProjectStatus.QUEUED

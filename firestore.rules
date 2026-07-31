@@ -1,13 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // A judge may retrieve one prepared demo only after anonymous Firebase
-    // authentication. Collection listing and every browser write stay denied.
-    match /prepared_demos/{demoId} {
-      allow get: if request.auth != null;
-      allow list, create, update, delete: if false;
-    }
-
+    // All product data is served through the authenticated API. Direct browser
+    // access is denied so plan and ownership checks cannot be bypassed.
     match /{document=**} { allow read, write: if false; }
   }
 }

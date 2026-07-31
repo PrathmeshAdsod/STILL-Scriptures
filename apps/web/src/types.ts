@@ -51,19 +51,12 @@ export interface ViewingSession {
   ended_naturally: boolean;
 }
 
-export interface PreparedDemoProvenance {
-  generated_at: string;
-  source_url: string;
-  source_rights_note: string;
-  analysis_windows: number;
-  pipeline: string[];
-  outcome: 'ACCEPTED_ECHO';
-}
-
-export interface PreparedDemo {
-  schema_version: 1;
-  judge_label: string;
-  project: Project;
-  echoes: Echo[];
-  provenance: PreparedDemoProvenance;
+export interface AccountStatus {
+  plan: 'FREE' | 'ACCESS';
+  max_video_duration_seconds: number;
+  analysis_limit: number;
+  analyses_used: number;
+  analyses_remaining: number;
+  usage_period: 'lifetime' | 'day';
+  usage_resets_at?: string;
 }

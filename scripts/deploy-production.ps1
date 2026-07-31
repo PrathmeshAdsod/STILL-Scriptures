@@ -55,6 +55,32 @@ function Add-SecretVersion {
   Invoke-Gcloud secrets add-iam-policy-binding $Name --project $ProjectId --member="serviceAccount:$RuntimeServiceAccount" --role=roles/secretmanager.secretAccessor --quiet
 }
 
+function Set-FirebaseEmailAuthentication {
+  $accessToken = (& gcloud auth print-access-token --project $ProjectId).Trim()
+  if (-not $accessToken) { throw 'Could not obtain a Google access token for Firebase Authentication configuration.' }
+  $headers = @{
+    Authorization = "Bearer $accessToken"
+    'X-Goog-User-Project' = $ProjectId
+  }
+  $body = @{
+    signIn = @{
+      email = @{ enabled = $true; passwordRequired = $true }
+      anonymous = @{ enabled = $false }
+    }
+    emailPrivacyConfig = @{ enableImprovedEmailPrivacy = $true }
+    passwordPolicyConfig = @{
+      passwordPolicyEnforcementState = 'ENFORCE'
+      forceUpgradeOnSignin = $false
+      passwordPolicyVersions = @(
+        @{ customStrengthOptions = @{ minPasswordLength = 12; maxPasswordLength = 128 } }
+      )
+    }
+  } | ConvertTo-Json -Depth 8 -Compress
+  $mask = 'signIn.email,signIn.anonymous,emailPrivacyConfig,passwordPolicyConfig'
+  $uri = "https://identitytoolkit.googleapis.com/admin/v2/projects/$ProjectId/config?updateMask=$mask"
+  Invoke-RestMethod -Method Patch -Uri $uri -Headers $headers -ContentType 'application/json' -Body $body | Out-Null
+}
+
 Push-Location $repoRoot
 try {
   $billingJson = & gcloud billing projects describe $ProjectId --format=json 2>$null
@@ -64,16 +90,17 @@ try {
   }
 
   $values = Read-DotEnv
-  foreach ($required in @('GEMINI_API_KEY', 'GLOO_CLIENT_ID', 'GLOO_CLIENT_SECRET', 'YVP_APP_KEY')) {
+  foreach ($required in @('GEMINI_API_KEY', 'GLOO_CLIENT_ID', 'GLOO_CLIENT_SECRET', 'YVP_APP_KEY', 'ACCESS_COUPON_CODE')) {
     if ([string]::IsNullOrWhiteSpace($values[$required])) { throw "The ignored .env is missing $required." }
   }
 
   $apis = @(
     'artifactregistry.googleapis.com', 'cloudbuild.googleapis.com', 'run.googleapis.com',
     'cloudtasks.googleapis.com', 'secretmanager.googleapis.com', 'firestore.googleapis.com',
-    'youtube.googleapis.com', 'apikeys.googleapis.com'
+    'youtube.googleapis.com', 'apikeys.googleapis.com', 'identitytoolkit.googleapis.com'
   )
   Invoke-Gcloud services enable @apis --project $ProjectId --quiet
+  Set-FirebaseEmailAuthentication
 
   $runtimeName = 'still-api-runtime'
   $invokerName = 'still-task-invoker'
@@ -105,6 +132,7 @@ try {
   Add-SecretVersion 'still-gloo-client-secret' $values['GLOO_CLIENT_SECRET'] $runtimeAccount
   Add-SecretVersion 'still-yvp-app-key' $values['YVP_APP_KEY'] $runtimeAccount
   Add-SecretVersion 'still-youtube-api-key' $youtubeKeyPayload.keyString $runtimeAccount
+  Add-SecretVersion 'still-access-coupon-code' $values['ACCESS_COUPON_CODE'] $runtimeAccount
 
   & gcloud artifacts repositories describe still --project $ProjectId --location $Region --format='value(name)' 2>$null | Out-Null
   if ($LASTEXITCODE -ne 0) { Invoke-Gcloud artifacts repositories create still --project $ProjectId --location $Region --repository-format=docker --description='STILL production images' --quiet }
@@ -121,8 +149,8 @@ try {
   }
 
   $hostingOrigin = "https://$ProjectId.web.app"
-  $environment = "APP_MODE=production,USE_PROVIDER_FIXTURES=false,LOCAL_WORKER_ENABLED=false,GOOGLE_CLOUD_PROJECT=$ProjectId,FIREBASE_PROJECT_ID=$ProjectId,GOOGLE_CLOUD_LOCATION=$Region,CLOUD_TASKS_QUEUE=$Queue,WORKER_BASE_URL=https://pending.invalid,WORKER_INVOKER_SERVICE_ACCOUNT=$invokerAccount,CORS_ORIGINS=[`"$hostingOrigin`"],GLOO_ENDPOINT_MODE=completions_v2,GLOO_MAX_CANDIDATES_PER_PROJECT=1,YVP_ALLOWED_BIBLE_IDS=[3034],MAX_VIDEO_DURATION_SECONDS=360,MAX_ANALYSIS_PER_USER_PER_DAY=2,MAX_ANALYSIS_GLOBAL_PER_DAY=20,DAILY_ESCALATION_BUDGET=0"
-  $secrets = 'GEMINI_API_KEY=still-gemini-api-key:latest,GLOO_CLIENT_ID=still-gloo-client-id:latest,GLOO_CLIENT_SECRET=still-gloo-client-secret:latest,YVP_APP_KEY=still-yvp-app-key:latest,YOUTUBE_API_KEY=still-youtube-api-key:latest'
+  $environment = "APP_MODE=production,USE_PROVIDER_FIXTURES=false,LOCAL_WORKER_ENABLED=false,GOOGLE_CLOUD_PROJECT=$ProjectId,FIREBASE_PROJECT_ID=$ProjectId,GOOGLE_CLOUD_LOCATION=$Region,CLOUD_TASKS_QUEUE=$Queue,WORKER_BASE_URL=https://pending.invalid,WORKER_INVOKER_SERVICE_ACCOUNT=$invokerAccount,CORS_ORIGINS=[`"$hostingOrigin`"],GLOO_ENDPOINT_MODE=completions_v2,GLOO_MAX_CANDIDATES_PER_PROJECT=1,YVP_ALLOWED_BIBLE_IDS=[3034],MAX_VIDEO_DURATION_SECONDS=360,FREE_ANALYSIS_LIFETIME_LIMIT=1,ACCESS_ANALYSIS_DAILY_LIMIT=2,MAX_ANALYSIS_GLOBAL_PER_DAY=20,DAILY_ESCALATION_BUDGET=0"
+  $secrets = 'GEMINI_API_KEY=still-gemini-api-key:latest,GLOO_CLIENT_ID=still-gloo-client-id:latest,GLOO_CLIENT_SECRET=still-gloo-client-secret:latest,YVP_APP_KEY=still-yvp-app-key:latest,YOUTUBE_API_KEY=still-youtube-api-key:latest,ACCESS_COUPON_CODE=still-access-coupon-code:latest'
   Invoke-Gcloud run deploy $Service --project $ProjectId --region $Region --image $image --service-account $runtimeAccount --allow-unauthenticated --port=8080 --cpu=1 --memory=1Gi --min=0 --max=1 --concurrency=20 --timeout=1800 --set-env-vars=$environment --set-secrets=$secrets --quiet
 
   $serviceUrl = (& gcloud run services describe $Service --project $ProjectId --region $Region --format='value(status.url)').Trim()
@@ -135,11 +163,10 @@ try {
   foreach ($line in $existingWebEnv) { if ($line -match '^([^#][^=]*)=(.*)$') { $webValues[$matches[1].Trim()] = $matches[2].Trim() } }
   $webValues['VITE_APP_MODE'] = 'production'
   $webValues['VITE_USE_PROVIDER_FIXTURES'] = 'false'
-  $webValues['VITE_PUBLIC_SHOWCASE'] = 'false'
   $webValues['VITE_API_BASE_URL'] = '/api'
   $requiredWebValues = @('VITE_FIREBASE_API_KEY', 'VITE_FIREBASE_AUTH_DOMAIN', 'VITE_FIREBASE_PROJECT_ID', 'VITE_FIREBASE_STORAGE_BUCKET', 'VITE_FIREBASE_APP_ID')
   foreach ($required in $requiredWebValues) { if ([string]::IsNullOrWhiteSpace($webValues[$required])) { throw "$productionEnv is missing $required." } }
-  $orderedWebKeys = @('VITE_APP_MODE', 'VITE_USE_PROVIDER_FIXTURES', 'VITE_PUBLIC_SHOWCASE', 'VITE_API_BASE_URL', 'VITE_GITHUB_URL') + $requiredWebValues
+  $orderedWebKeys = @('VITE_APP_MODE', 'VITE_USE_PROVIDER_FIXTURES', 'VITE_API_BASE_URL', 'VITE_GITHUB_URL') + $requiredWebValues
   [System.IO.File]::WriteAllLines($productionEnv, @($orderedWebKeys | Where-Object { $webValues.ContainsKey($_) } | ForEach-Object { "$_=$($webValues[$_])" }), [System.Text.UTF8Encoding]::new($false))
 
   & npm run build

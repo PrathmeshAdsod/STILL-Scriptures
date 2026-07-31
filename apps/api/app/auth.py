@@ -23,8 +23,15 @@ async def current_user(request: Request, authorization: str | None = Header(defa
         except ValueError:
             firebase_admin.initialize_app(options={"projectId": settings.firebase_project_id})
         token = await asyncio.to_thread(firebase_admin.auth.verify_id_token, authorization.removeprefix("Bearer "))
+        provider = (token.get("firebase") or {}).get("sign_in_provider")
+        if provider == "anonymous" or not token.get("email"):
+            raise api_error(ErrorCode.AUTH_REQUIRED, "Sign in with an email account to continue.", 401)
+        if token.get("email_verified") is not True:
+            raise api_error(ErrorCode.FORBIDDEN, "Verify your email address before analyzing a video.", 403)
         return str(token["uid"])
     except Exception as error:
+        if hasattr(error, "status_code"):
+            raise
         raise api_error(ErrorCode.AUTH_REQUIRED, "The Firebase token could not be verified.", 401) from error
 
 

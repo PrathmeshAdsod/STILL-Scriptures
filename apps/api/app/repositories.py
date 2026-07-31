@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time, timedelta
 from enum import StrEnum
 from typing import Protocol
 from uuid import UUID
 
-from .schemas import AnalysisJob, Echo, NarrativeState, Project, ReflectionCandidate, ViewingSession, WindowProvenance
+from .schemas import AccountPlan, AccountStatus, AnalysisJob, Echo, NarrativeState, Project, ReflectionCandidate, ViewingSession, WindowProvenance
 
 
 class AnalysisReservationResult(StrEnum):
@@ -31,7 +31,9 @@ class DataStore(Protocol):
     async def echoes(self, project_id: UUID) -> list[Echo]: ...
     async def put_session(self, session: ViewingSession) -> None: ...
     async def get_session(self, session_id: UUID) -> ViewingSession | None: ...
-    async def reserve_analysis(self, *, owner_id: str, project_id: UUID, per_user_limit: int, global_limit: int) -> AnalysisReservationResult: ...
+    async def account_status(self, *, owner_id: str, free_limit: int, access_daily_limit: int, max_duration_seconds: int) -> AccountStatus: ...
+    async def grant_access(self, *, owner_id: str) -> None: ...
+    async def reserve_analysis(self, *, owner_id: str, project_id: UUID, free_limit: int, access_daily_limit: int, global_limit: int) -> AnalysisReservationResult: ...
     async def delete_project(self, project_id: UUID) -> None: ...
 
 
@@ -48,6 +50,9 @@ class InMemoryDataStore:
         self.echo_records: dict[UUID, list[Echo]] = defaultdict(list)
         self.sessions: dict[UUID, ViewingSession] = {}
         self.analysis_usage: dict[str, dict[str, object]] = {}
+        self.account_profiles: dict[str, AccountPlan] = {}
+        self.free_usage: dict[str, set[UUID]] = defaultdict(set)
+        self.analysis_reservations: dict[UUID, str] = {}
 
     async def put_project(self, project: Project) -> None:
         project.updated_at = datetime.now(UTC)
@@ -113,21 +118,40 @@ class InMemoryDataStore:
     async def get_session(self, session_id: UUID) -> ViewingSession | None:
         return self.sessions.get(session_id)
 
-    async def reserve_analysis(self, *, owner_id: str, project_id: UUID, per_user_limit: int, global_limit: int) -> AnalysisReservationResult:
+    async def account_status(self, *, owner_id: str, free_limit: int, access_daily_limit: int, max_duration_seconds: int) -> AccountStatus:
+        plan = self.account_profiles.get(owner_id, AccountPlan.FREE)
+        if plan == AccountPlan.ACCESS:
+            day = datetime.now(UTC).date().isoformat()
+            usage = self.analysis_usage.get(day, {"users": {}})
+            users = usage.get("users", {})
+            assert isinstance(users, dict)
+            used = len(users.get(owner_id, set()))
+            resets_at = datetime.combine(datetime.now(UTC).date() + timedelta(days=1), time.min, tzinfo=UTC)
+            return AccountStatus(plan=plan, max_video_duration_seconds=max_duration_seconds, analysis_limit=access_daily_limit, analyses_used=used, analyses_remaining=max(0, access_daily_limit - used), usage_period="day", usage_resets_at=resets_at)
+        used = len(self.free_usage[owner_id])
+        return AccountStatus(plan=plan, max_video_duration_seconds=max_duration_seconds, analysis_limit=free_limit, analyses_used=used, analyses_remaining=max(0, free_limit - used), usage_period="lifetime")
+
+    async def grant_access(self, *, owner_id: str) -> None:
+        self.account_profiles[owner_id] = AccountPlan.ACCESS
+
+    async def reserve_analysis(self, *, owner_id: str, project_id: UUID, free_limit: int, access_daily_limit: int, global_limit: int) -> AnalysisReservationResult:
+        if self.analysis_reservations.get(project_id) == owner_id:
+            return AnalysisReservationResult.RESERVED
         day = datetime.now(UTC).date().isoformat()
         usage = self.analysis_usage.setdefault(day, {"total": 0, "users": {}})
         users = usage["users"]
         assert isinstance(users, dict)
-        user_projects = users.setdefault(owner_id, set())
+        plan = self.account_profiles.get(owner_id, AccountPlan.FREE)
+        user_projects = self.free_usage[owner_id] if plan == AccountPlan.FREE else users.setdefault(owner_id, set())
         assert isinstance(user_projects, set)
-        if project_id in user_projects:
-            return AnalysisReservationResult.RESERVED
-        if len(user_projects) >= per_user_limit:
+        limit = free_limit if plan == AccountPlan.FREE else access_daily_limit
+        if len(user_projects) >= limit:
             return AnalysisReservationResult.USER_LIMIT_REACHED
         total = int(usage["total"])
         if total >= global_limit:
             return AnalysisReservationResult.GLOBAL_LIMIT_REACHED
         user_projects.add(project_id)
+        self.analysis_reservations[project_id] = owner_id
         usage["total"] = total + 1
         return AnalysisReservationResult.RESERVED
 
@@ -157,6 +181,9 @@ class FirestoreDataStore:
         self.jobs = self.client.collection("analysisJobs")
         self.sessions = self.client.collection("viewingSessions")
         self.analysis_usage = self.client.collection("analysisUsage")
+        self.account_profiles = self.client.collection("accountProfiles")
+        self.account_usage = self.client.collection("accountUsage")
+        self.analysis_reservations = self.client.collection("analysisReservations")
 
     @staticmethod
     def _doc(model: object) -> dict:
@@ -225,30 +252,60 @@ class FirestoreDataStore:
         snapshot = await self.sessions.document(str(session_id)).get()
         return ViewingSession.model_validate(snapshot.to_dict()) if snapshot.exists else None
 
-    async def reserve_analysis(self, *, owner_id: str, project_id: UUID, per_user_limit: int, global_limit: int) -> AnalysisReservationResult:
+    async def account_status(self, *, owner_id: str, free_limit: int, access_daily_limit: int, max_duration_seconds: int) -> AccountStatus:
+        day = datetime.now(UTC).date().isoformat()
+        profile_snapshot = await self.account_profiles.document(owner_id).get()
+        plan = AccountPlan((profile_snapshot.to_dict() or {}).get("plan", AccountPlan.FREE.value))
+        if plan == AccountPlan.ACCESS:
+            daily_snapshot = await self.analysis_usage.document(day).collection("users").document(owner_id).get()
+            used = len((daily_snapshot.to_dict() or {}).get("project_ids", []))
+            resets_at = datetime.combine(datetime.now(UTC).date() + timedelta(days=1), time.min, tzinfo=UTC)
+            return AccountStatus(plan=plan, max_video_duration_seconds=max_duration_seconds, analysis_limit=access_daily_limit, analyses_used=used, analyses_remaining=max(0, access_daily_limit - used), usage_period="day", usage_resets_at=resets_at)
+        lifetime_snapshot = await self.account_usage.document(owner_id).get()
+        used = len((lifetime_snapshot.to_dict() or {}).get("free_project_ids", []))
+        return AccountStatus(plan=plan, max_video_duration_seconds=max_duration_seconds, analysis_limit=free_limit, analyses_used=used, analyses_remaining=max(0, free_limit - used), usage_period="lifetime")
+
+    async def grant_access(self, *, owner_id: str) -> None:
+        await self.account_profiles.document(owner_id).set({"plan": AccountPlan.ACCESS.value, "access_granted_at": datetime.now(UTC), "updated_at": datetime.now(UTC)}, merge=True)
+
+    async def reserve_analysis(self, *, owner_id: str, project_id: UUID, free_limit: int, access_daily_limit: int, global_limit: int) -> AnalysisReservationResult:
         from google.cloud import firestore_v1
 
         day = datetime.now(UTC).date().isoformat()
         usage_ref = self.analysis_usage.document(day)
         user_ref = usage_ref.collection("users").document(owner_id)
+        profile_ref = self.account_profiles.document(owner_id)
+        lifetime_ref = self.account_usage.document(owner_id)
+        reservation_ref = self.analysis_reservations.document(str(project_id))
 
         @firestore_v1.async_transactional
         async def reserve(transaction):
             usage_snapshot = await usage_ref.get(transaction=transaction)
             user_snapshot = await user_ref.get(transaction=transaction)
+            profile_snapshot = await profile_ref.get(transaction=transaction)
+            lifetime_snapshot = await lifetime_ref.get(transaction=transaction)
+            reservation_snapshot = await reservation_ref.get(transaction=transaction)
+            if reservation_snapshot.exists and (reservation_snapshot.to_dict() or {}).get("owner_id") == owner_id:
+                return AnalysisReservationResult.RESERVED
             usage_payload = usage_snapshot.to_dict() or {}
             user_payload = user_snapshot.to_dict() or {}
-            projects = list(user_payload.get("project_ids", []))
+            profile_payload = profile_snapshot.to_dict() or {}
+            lifetime_payload = lifetime_snapshot.to_dict() or {}
+            plan = AccountPlan(profile_payload.get("plan", AccountPlan.FREE.value))
+            usage_field = "free_project_ids" if plan == AccountPlan.FREE else "project_ids"
+            usage_payload_for_plan = lifetime_payload if plan == AccountPlan.FREE else user_payload
+            projects = list(usage_payload_for_plan.get(usage_field, []))
             project_key = str(project_id)
-            if project_key in projects:
-                return AnalysisReservationResult.RESERVED
-            if len(projects) >= per_user_limit:
+            limit = free_limit if plan == AccountPlan.FREE else access_daily_limit
+            if len(projects) >= limit:
                 return AnalysisReservationResult.USER_LIMIT_REACHED
             total = int(usage_payload.get("total", 0))
             if total >= global_limit:
                 return AnalysisReservationResult.GLOBAL_LIMIT_REACHED
             transaction.set(usage_ref, {"total": total + 1, "updated_at": datetime.now(UTC)}, merge=True)
-            transaction.set(user_ref, {"project_ids": [*projects, project_key], "updated_at": datetime.now(UTC)}, merge=True)
+            target_ref = lifetime_ref if plan == AccountPlan.FREE else user_ref
+            transaction.set(target_ref, {usage_field: [*projects, project_key], "updated_at": datetime.now(UTC)}, merge=True)
+            transaction.set(reservation_ref, {"owner_id": owner_id, "project_id": project_key, "plan": plan.value, "reserved_at": datetime.now(UTC), "usage_day": day})
             return AnalysisReservationResult.RESERVED
 
         return await reserve(self.client.transaction())

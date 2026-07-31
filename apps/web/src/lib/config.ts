@@ -8,9 +8,7 @@ if (appMode === 'production' && fixturesEnabled) {
 export const clientConfig = {
   appMode,
   fixturesEnabled,
-  publicShowcase: import.meta.env.VITE_PUBLIC_SHOWCASE === 'true',
   githubUrl: import.meta.env.VITE_GITHUB_URL ?? 'https://github.com/PrathmeshAdsod/STILL-Scriptures',
-  demoUrl: import.meta.env.VITE_DEMO_URL,
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api',
   firebase: {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,

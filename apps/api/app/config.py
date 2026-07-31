@@ -36,8 +36,10 @@ class Settings(BaseSettings):
     worker_base_url: str | None = None
     worker_invoker_service_account: str | None = None
     max_video_duration_seconds: int = Field(default=360, ge=30, le=1_800)
-    max_analysis_per_user_per_day: int = Field(default=2, ge=1, le=20)
+    free_analysis_lifetime_limit: int = Field(default=1, ge=1, le=5)
+    access_analysis_daily_limit: int = Field(default=2, ge=1, le=20)
     max_analysis_global_per_day: int = Field(default=20, ge=1, le=500)
+    access_coupon_code: str | None = None
     gemini_api_key: str | None = None
     youtube_api_key: str | None = None
     gemini_primary_model: str = "gemini-3.5-flash-lite"
@@ -74,6 +76,8 @@ class Settings(BaseSettings):
             raise ValueError("Competition production permits exactly one paid Gloo candidate per project.")
         if self.app_mode == "production" and not self.youtube_api_key:
             raise ValueError("Production requires YOUTUBE_API_KEY for authoritative source validation.")
+        if self.app_mode == "production" and not self.access_coupon_code:
+            raise ValueError("Production requires ACCESS_COUPON_CODE for private Access Pass redemption.")
         return self
 
     def integration_status(self, credential_present: bool) -> IntegrationStatus:

@@ -12,6 +12,7 @@ async def test_production_worker_rejects_a_spoofed_task_header_without_oidc() ->
     settings = Settings(
         app_mode="production",
         youtube_api_key="restricted-key",
+        access_coupon_code="TEST-ACCESS-CODE",
         gloo_max_candidates_per_project=1,
         worker_base_url="https://still-api.example",
         worker_invoker_service_account="still-task@example.iam.gserviceaccount.com",
