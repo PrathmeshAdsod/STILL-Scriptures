@@ -1,51 +1,51 @@
 # Kaggle writeup - submission copy
 
-The copy below remains under the competition's 500-word limit. Replace only the
-demo placeholder after the final public video is uploaded and tested.
+Replace the demo placeholder after the final public video is uploaded and
+tested. The copy below is under the competition's 500-word limit.
 
 ## STILL - Watch first. Reflect later.
 
-Video can carry testimony, doubt, humor, grief, and moral tension - but most AI
-systems rush to explain before a story has room to land. That creates two
-failures at once: spoilers, and Scripture matched to a title or theme instead of
-to what was actually witnessed.
+Video can carry testimony, doubt, humor, grief, and moral tension, but most AI
+systems rush to explain before a story has room to land. That creates spoilers
+and connections based on titles instead of what was actually witnessed.
 
 **STILL is a spoiler-safe reflection layer for story-led video.** A viewer adds
-a video they have the right to use or a public YouTube story. STILL prepares it
-chronologically, then keeps the first watch quiet. A reflection can appear only
-after the viewer has genuinely watched the moment that grounds it. Full-story
-reflection stays locked until contiguous viewing and a natural ending establish
-Story Complete.
+a public or unlisted YouTube story up to six minutes. STILL prepares it in
+chronological audiovisual windows, then keeps the first watch quiet. A
+reflection appears only after the viewer has genuinely watched the moment that
+grounds it. Full-story reflection remains locked until contiguous viewing and a
+natural ending establish Story Complete.
 
 The technical design makes that promise enforceable:
 
-- **Gemini is the audiovisual observer.** It receives bounded, chronological
-  windows with exact offsets and append-only narrative state. The final public
-  demo completed seven live audiovisual windows with conservative fallback.
-- **Gloo provides Sacred Timing.** Required structured decisions can accept,
-  hold, abstain, reject, or remain silent. It returned `NO_ECHO` for unsuitable
-  footage, then accepted one proportionate Pip reflection and its final passage
-  verification. The v2 policy rejects shaming and superficial wordplay.
-- **YouVersion is the canonical Scripture source.** Only an exact API-retrieved,
-  app-licensed passage with version and copyright metadata may be rendered as
-  Scripture. The final Echo renders exact 1 Corinthians 1:27, BSB, with
-  attribution.
+- **Gemini observes.** It receives bounded windows with exact offsets and
+  append-only narrative state, so earlier moments never receive future
+  knowledge.
+- **Gloo decides Sacred Timing.** Structured decisions may accept, hold,
+  reject, or remain silent. `NO_ECHO` is a successful safe outcome when a
+  connection would be superficial or disproportionate.
+- **YouVersion is canonical.** Only exact API-retrieved, app-licensed text with
+  version and copyright metadata may be rendered as Scripture.
 
-The React product is backed by FastAPI, resumable jobs, model budgets, and
-per-window provenance. The public Firebase Spark experience signs judges in
-anonymously and retrieves one exact source-bound result from read-only
-Firestore. It offers real YouTube playback, watched-frontier gating, Story
-Complete, and exact Scripture without putting provider keys in the browser.
-Open arbitrary-source processing remains local because Cloud Run would require
-billing; the hosted experience is labelled Prepared Demo, never a fake backend.
+The production React application uses Firebase email authentication, FastAPI,
+Firestore, Cloud Tasks, Cloud Run, Secret Manager, resumable jobs, model
+budgets, and per-window provenance. It processes arbitrary supported videos;
+it is not a prepared sample. The entrant's 5:58 test source completed all 9/9
+full audiovisual windows through the hosted API in about 84 seconds and ended
+honestly as `READY_NO_ECHO`.
 
-STILL's immediate wedge is reflective short-form video: testimonies, short
-films, youth-group stories, and discussion-led media. Its broader vision is a
-new interaction pattern for AI and Scripture: do not interrupt the story, do
-not outrun the viewer, and do not speak when silence is more faithful.
+The Free plan offers one six-minute analysis. A private competition Access Pass
+allows two analyses per UTC day. Payments are not integrated in this release.
+Hard server-side limits, a one-at-a-time queue, one Cloud Run instance at most,
+and one paid Gloo candidate per project protect the live service from abuse.
+
+STILL's initial audience is testimonies, short films, youth groups, and
+discussion-led media. Its broader interaction principle is simple: do not
+interrupt the story, do not outrun the viewer, and do not speak when silence is
+more faithful.
 
 **Demo:** [PUBLIC_YOUTUBE_DEMO_URL]
 
-**Public app:** <https://still-scriptures.web.app> — code `STILL-JUDGE-2026`
+**Public app:** <https://still-scriptures.web.app>
 
 **Code:** <https://github.com/PrathmeshAdsod/STILL-Scriptures>

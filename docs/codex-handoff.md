@@ -2,81 +2,79 @@
 
 ## Read this first
 
-STILL is a spoiler-safe video reflection application. Missing credentials,
-failed providers, or fixture output cannot create a production Echo or make a
-new project `READY`.
+STILL is a real, hosted, spoiler-safe video reflection product. Missing
+credentials, failed providers, or fixture output cannot create a production
+Echo. `NO_ECHO` is a valid complete result and must never be weakened to make
+a demo look more dramatic.
 
-As of 2026-08-01, one real seven-window project produced an accepted, verified
-Echo and a source-bound judge experience is live on Firebase Spark. Anonymous
-Auth, Firestore rules, Hosting, code retrieval, real YouTube playback, natural
-Story Complete, exact Scripture rendering, and a fresh final-record 0:00 lock
-have passed. See `docs/real-e2e-acceptance.md`.
+As of 2026-08-01, the public application is live at
+<https://still-scriptures.web.app>. Firebase email/password authentication,
+Firestore, Cloud Tasks, Cloud Run, Secret Manager, and Hosting are deployed.
+The arbitrary-video cloud gate passed on the entrant's 5:58 source: 9/9 full
+audiovisual windows completed in about 84 seconds with an honest
+`READY_NO_ECHO` result.
 
 ## Product contract
 
-- A viewer watches first; reflections are hidden by the contiguous watched
+- The viewer watches first; reflections remain behind the contiguous watched
   frontier and Story Complete gate.
-- A worker analyses chronological bounded audiovisual windows with exact
-  offsets and immutable prior narrative state.
-- Gemini observes, Gloo decides Sacred Timing, and YouVersion is the only source
-  rendered as canonical Scripture.
+- Gemini analyzes chronological bounded audiovisual windows with exact offsets
+  and immutable prior narrative state.
+- Gloo decides Sacred Timing and may accept, hold, reject, or remain silent.
+- YouVersion is the only source rendered as canonical Scripture.
 - Title-only, transcript-only, static, random, template, fixture, or
-  cached-other-source output may never become a production Echo.
-- `NO_ECHO` is a valid, complete outcome. Never weaken it to make a demo look
-  more dramatic.
+  other-source cached output may never become a production Echo.
 - NVIDIA is optional, disabled, and not a release dependency.
 
-## Current verified status
+## Verified status
 
 | Area | Status |
 | --- | --- |
-| Web UI and playback firewall | Implemented; tests, lint, typecheck, production build, and local browser form inspection pass |
-| FastAPI API and worker | 25 tests pass; the entrant's 5:58 URL completed 9/9 full audiovisual windows in the actual worker and ended `READY_NO_ECHO`; accepted seven-window runs also completed |
-| Gemini | Accepted source completed seven audiovisual windows using `gemini-3.5-flash-lite` and conservative fallback `gemini-3.1-flash-lite` |
-| Gloo | Abstention and acceptance passed; prepared runs cap candidates at one; final passage verification passed |
-| YouVersion | Bible 3034 returned exact 1 Corinthians 1:27, BSB, and copyright metadata |
-| Firebase | Anonymous Auth, Firestore prepared record/rules, and Hosting deployed at <https://still-scriptures.web.app> |
-| Tasks / Cloud Run | Secured arbitrary-YouTube release and deployment automation implemented; deployment blocked only by unlinked Blaze billing |
-| NVIDIA | Disabled and untested |
-| GitHub | Public `master` contains the prepared demo and arbitrary-source hardening through commit `3dd8178` |
+| Product UI | Public landing, auth, Plans, account, add, processing, watch, completion, and reflection flows implemented |
+| Authentication | Email/password sign-up, verification, sign-in, sign-out, and password reset deployed; anonymous auth disabled |
+| API and worker | 27 tests pass; deployed Cloud Tasks worker completed 9/9 windows for the 5:58 acceptance source |
+| Gemini | Live bounded full-audiovisual analysis verified |
+| Gloo | Live abstention and accepted-candidate paths verified; production candidate cap is one |
+| YouVersion | Exact canonical passage, version, and copyright metadata verified |
+| Firebase and Google Cloud | Hosting, Auth, Firestore, Tasks, Run, and Secret Manager deployed |
+| Browser QA | Desktop and mobile production checks pass with zero console errors |
+| GitHub | Public `master` is the release branch |
 
-The judge source is Dogs Inc's 4:05 public release of “Pip.” STILL embeds the
-original; copyright remains with its owners. The public code is
-`STILL-JUDGE-2026` and is a demo locator, not a password.
+## Accounts, access, and cost
 
-## Secrets and cost controls
+- Free accounts receive one analysis total, with a maximum video length of six
+  minutes.
+- A privately issued Access Pass grants two analyses per UTC day, also limited
+  to six minutes each.
+- Payments are intentionally absent from this competition release.
+- The private test account and Access Pass are handed to the owner outside the
+  repository. Never copy them into code, docs, screenshots, commits, logs, or
+  competition text.
+- The production global cap is twenty analyses per UTC day.
+- Cloud Tasks concurrency is one, Cloud Run maximum instances is one, and each
+  project permits at most one paid Gloo candidate.
+- Live provider probes spend quota. Do not rerun them merely to make evidence
+  look newer.
 
-- `.env` contains live local credentials and is ignored by Git. Never print,
-  commit, screenshot, or copy those values into commands, docs, or provider
-  payload evidence.
-- The Windows ACL on `.env` is restricted to the current user.
-- Gloo is pay-as-you-go. Every production project hard-caps candidates at one;
-  the protected release also limits each guest to two analyses and the whole
-  app to twenty per day. Current weekly spend remains $0.01 / $5.00 after the
-  latest bounded acceptance.
-- Production rejects `USE_PROVIDER_FIXTURES=true`.
-- The public prepared demo contains no provider credentials and disables open
-  submission instead of simulating a backend.
+## Secret handling
 
-## Evidence already recorded
+- `.env` and the generated private-access handoff are ignored by Git.
+- Their Windows ACLs are restricted to the current user and SYSTEM.
+- Runtime secrets are held in Secret Manager and are never bundled into the
+  web client.
+- Rotate the temporary competition credentials after the demo as planned.
 
-- `docs/live-verification.md`: sanitized call timings, tokens, and outcomes.
-- `docs/video-model-capability-matrix.md`: live Gemini capability matrix.
-- `docs/real-e2e-acceptance.md`: exact partial/open acceptance verdict.
-- `docs/submission/`: writeup, demo script, readiness checklist, and cover.
+## Resume order
 
-## Immediate resume order
-
-1. Ask the owner to link Blaze billing in the Firebase console; never handle or
-   request payment details in chat.
-2. Run `scripts/deploy-production.ps1`, then complete the public arbitrary-URL
-   browser acceptance in `docs/deployment.md`.
-3. Confirm the deployed revision and public `master` still match before the
-   final recording.
-4. Record and upload a public YouTube demo no longer than three minutes.
-5. Publish/attach the executed Kaggle notebook and create the Kaggle writeup.
-6. Preview all links signed out, then ask the entrant before the irreversible
-   final Kaggle Submit action.
+1. Check `git status` and ensure the local release matches public `master`.
+2. Open the public app signed out, then sign in with the private account without
+   exposing its password on screen.
+3. Confirm the account allowance before spending a live run.
+4. Record and upload the public demo, then replace the video placeholder in the
+   competition writeup.
+5. Attach the executed Kaggle notebook and public links.
+6. Preview every link signed out and let the entrant perform the final Kaggle
+   submission.
 
 ## Verification commands
 
@@ -88,18 +86,5 @@ npm run build
 .\.venv\Scripts\python.exe -m pytest apps/api/tests -q
 ```
 
-Live probes, when explicitly needed, are documented in
-`docs/live-verification.md`. They consume real provider quota and must never be
-run merely to make documentation appear greener.
-
-## Definition of done
-
-STILL is competition-complete only when every offline check passes, GitHub,
-notebook, and demo are public, Kaggle assets are attached, and the entrant has
-approved the final submission. Until a real accepted Echo and public interactive
-backend exist, describe the current result as:
-
-> Real bounded pipelines produced both an accepted canonical Echo and honest
-> NO_ECHO results; a source-bound Firebase judge demo is public; arbitrary
-> public-YouTube cloud processing is implemented but awaits Blaze deployment
-> and public browser acceptance.
+Provider evidence is documented in `docs/live-verification.md`; deployed
+acceptance is in `docs/real-e2e-acceptance.md`.

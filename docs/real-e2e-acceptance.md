@@ -1,81 +1,61 @@
 # Real end-to-end acceptance evidence
 
-No mock, fixture, hardcoded Echo, transcript-only substitute, or
-title/description analysis may satisfy the real pipeline gate. A public
-prepared-demo record is allowed only after that real gate succeeds, only for
-the exact source, and only with sanitized provenance. It cannot answer a new
-submission.
+No mock, fixture, hardcoded Echo, transcript-only substitute, title analysis,
+or cached result from another source may satisfy the production gate.
+`READY_NO_ECHO` is a valid completion when the evidence does not support a
+proportionate reflection.
 
-## Gate 1 - Milestone 5: real pipeline acceptance
+## Gate 1 - provider pipeline
 
-Use a previously unseen, rights-cleared supported video through the real
-staging/backend pipeline. Verify:
+Status: **passed on real video sources** (2026-08-01).
 
-1. real source validation;
-2. real bounded Gemini audiovisual requests;
-3. evidence that audio and visual context influenced output;
-4. chronological causal narrative states;
-5. real Gloo Sacred Timing decision;
-6. real YouVersion retrieval and real Gloo passage verification;
-7. final persisted Echo with full provider and Scripture provenance.
+- Gemini completed bounded chronological full-audiovisual windows with
+  immutable prior narrative state.
+- Gloo returned both a valid structured abstention for unsuitable material and
+  an accepted candidate for a suitable source.
+- YouVersion returned exact canonical passage text, version, and copyright
+  attribution for the accepted path.
+- Gloo accepted the final canonical-passage verification.
+- One suitable source produced a verified persisted Echo; the sensitive test
+  source correctly produced `NO_ECHO`.
 
-Evidence status: **technical pipeline passed; source-rights caveat recorded**
-(2026-08-01).
+The accepted source is Dogs Inc's public release, "Pip." STILL uses the
+original YouTube embed and does not rehost the media. Copyright remains with
+the source owner; this technical evidence is not a legal ownership claim.
 
-- Real public source validation passed for a 5:58 entrant-selected YouTube URL.
-- Gemini completed two inspected audiovisual windows and a 9-window local
-  application-worker run with immutable chronological state.
-- One paid Gloo required-tool call returned `NO_ECHO` with confidence 1.0. This
-  is a valid safe result for the sensitive source, not a persisted Scripture
-  Echo.
-- YouVersion Bible 3034 independently returned an exact canonical passage,
-  version metadata, and copyright attribution.
-- A fresh application-worker acceptance on 2026-08-01 first exposed a local
-  RPM defect at 8/9. After the router was changed to wait for the exact local
-  cooldown, a bounded rerun completed 9/9 `FULL_AUDIOVISUAL` windows in 82
-  seconds and ended `READY_NO_ECHO`. The ephemeral acceptance harness did not
-  preserve the first run, so this evidence does not claim persisted resume.
+## Gate 2 - deployed arbitrary-source product
 
-Those observations remain valid evidence of abstention and bounded cooldown behavior.
-Afterward, Dogs Inc's public release, “Pip,”
-completed seven real bounded audiovisual windows. Gloo accepted one capped
-candidate, YouVersion returned exact 1 Corinthians 1:27 in BSB with copyright
-attribution, Gloo accepted passage verification, and one Echo was persisted.
+Status: **passed** (2026-08-01).
 
-Dogs Inc produced and published the guide-dog story on its own channel. STILL
-uses only the original YouTube embed and does not rehost it.
-Copyright remains with the owners; this evidence is not a legal ownership claim.
+The entrant-selected <https://youtu.be/3ZR3unZ3FW0> source has an authoritative
+duration of 5:58. It was submitted through the public Hosting origin with an
+authenticated, email-verified Access account. The deployed Cloud Tasks worker
+completed 9/9 full audiovisual windows in about 84 seconds and reached terminal
+status `READY_NO_ECHO`.
 
-## Gate 2 - final deployment: deployed E2E acceptance
+This result demonstrates:
 
-Repeat the flow through the public deployed application. Verify:
+1. real frontend-compatible authenticated submission;
+2. authoritative video validation and six-minute enforcement;
+3. durable Cloud Tasks dispatch to the Cloud Run worker;
+4. real bounded audiovisual processing for every window;
+5. honest abstention rather than a forced Scripture connection; and
+6. persisted project state retrievable only by its owner.
 
-1. real frontend submission/upload;
-2. durable background processing and READY state;
-3. real playback, watched-range and spoiler-lock behavior;
-4. Story Complete gating;
-5. intentional reflection displaying exact YouVersion Scripture.
+## Production browser and infrastructure checks
 
-Evidence status: **prepared-demo interaction passed; arbitrary submission
-deployment awaits the owner-controlled Blaze switch**.
+- Public landing and Plans pages render correctly signed out.
+- Protected routes show an account-required state.
+- Email/password sign-in and account allowance retrieval work.
+- The private Access Pass activates and reports two daily analyses.
+- Desktop and mobile layouts pass visual inspection.
+- The browser console reports zero errors during the checked flows.
+- Browser Firestore access is denied; authenticated API access is required.
+- The health endpoint returns `ok`; an unauthenticated account request returns
+  HTTP 401.
+- Cloud Tasks is running with maximum concurrency one and two attempts.
+- Cloud Run serves 100% of traffic from the ready revision, scales to zero, and
+  has maximum instances one.
 
-Firebase Hosting is live at <https://still-scriptures.web.app> on Spark. A fresh
-anonymous Firebase session successfully retrieved the exact hashed prepared
-record. Deployed rules denied collection listing and every browser write.
-
-Browser evidence passed:
-
-- the source-bound YouTube player loaded from the producing nonprofit's channel;
-- at frontier 0:00, the reflection drawer contained zero Echoes;
-- contiguous real playback advanced the frontier;
-- a full natural playback produced Story Complete and exact canonical rendering;
-- the final Pip record remains hidden until its 3:20 frontier;
-- the client contains no Gemini, Gloo, or YouVersion credential.
-
-The 0:00/0:40 before-and-after frontier behavior was browser-verified on the
-same schema before the final record replacement; the final Pip record was then
-verified fresh at 0:00 with zero Echoes. This validates the public prepared-demo journey, not open `add → process` for an
-arbitrary new source. Cloud Run, Cloud Tasks, and Firebase Storage remain
-undeployed because the owner has not yet linked Blaze billing. The secured
-public-YouTube backend and guarded deployment script are implemented, but this
-gate remains open until deployment and a fresh browser acceptance pass.
+The acceptance run used one of that day's two Access allowances. Do not rerun a
+paid acceptance merely to refresh this document.

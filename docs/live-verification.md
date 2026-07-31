@@ -33,12 +33,12 @@ Status: **bounded verification and one full accepted Echo passed on
   the first attempt at 8/9; retry resumed and completed as `READY_NO_ECHO`.
 - One paid Gloo Completions V2 call returned the required Sacred Timing tool
   decision `NO_ECHO` with confidence 1.0. Usage was 2,474 prompt and 230
-  completion tokens. The worker limits Gloo to the two strongest candidates per
-  project.
+  completion tokens. The production worker now limits Gloo to the strongest
+  single candidate per project.
 - YouVersion returned HTTP 200 for Bible 3034 and passage `JHN.3.16`, including
   canonical content, version metadata, and copyright attribution.
 
-## Accepted prepared-demo run
+## Accepted source run
 
 - Dogs Inc's public release of “Pip” was inspected as a 245-second, public,
   non-live, age-unrestricted YouTube source.
@@ -47,7 +47,7 @@ Status: **bounded verification and one full accepted Echo passed on
 - The durable worker completed seven chronological windows. The conservative
   router used `gemini-3.5-flash-lite` and `gemini-3.1-flash-lite` without
   reprocessing persisted windows.
-- The prepared-demo runner capped Gloo at one candidate. Gloo accepted the
+- The source-bound acceptance runner capped Gloo at one candidate. Gloo accepted the
   candidate under the strengthened v2 proportionality policy, YouVersion Bible
   3034 returned exact 1 Corinthians 1:27 in BSB with copyright attribution, and
   Gloo accepted passage verification.

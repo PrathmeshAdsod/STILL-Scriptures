@@ -174,7 +174,7 @@ try {
   [System.IO.File]::WriteAllText($environmentPath, ($environmentValues | ConvertTo-Json -Compress), [System.Text.UTF8Encoding]::new($false))
   $secrets = 'GEMINI_API_KEY=still-gemini-api-key:latest,GLOO_CLIENT_ID=still-gloo-client-id:latest,GLOO_CLIENT_SECRET=still-gloo-client-secret:latest,YVP_APP_KEY=still-yvp-app-key:latest,YOUTUBE_API_KEY=still-youtube-api-key:latest,ACCESS_COUPON_CODE=still-access-coupon-code:latest'
   try {
-    Invoke-Gcloud run deploy $Service --project $ProjectId --region $Region --image $image --service-account $runtimeAccount --allow-unauthenticated --port=8080 --cpu=1 --memory=1Gi --min=0 --max=1 --concurrency=20 --timeout=1800 --env-vars-file=$environmentPath --set-secrets=$secrets --quiet
+    Invoke-Gcloud run deploy $Service --project $ProjectId --region $Region --image $image --service-account $runtimeAccount --allow-unauthenticated --port=8080 --cpu=1 --memory=1Gi --min-instances=0 --max-instances=1 --concurrency=20 --timeout=1800 --env-vars-file=$environmentPath --set-secrets=$secrets --quiet
   } finally {
     if (Test-Path -LiteralPath $environmentPath) { Remove-Item -LiteralPath $environmentPath -Force }
   }

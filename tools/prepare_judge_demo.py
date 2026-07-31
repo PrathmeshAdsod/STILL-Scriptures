@@ -1,8 +1,9 @@
-"""Run and publish one exact provider-backed judge demo.
+"""Create one exact source-bound provider acceptance artifact.
 
 The script never publishes fixtures or a NO_ECHO result as an accepted Echo.
 It uses a single Gloo candidate cap and writes a sanitized read-only document
 only after Gemini, Gloo, YouVersion, and Gloo passage verification all pass.
+This legacy evidence utility is not used by the authenticated production app.
 """
 
 from __future__ import annotations
@@ -146,7 +147,7 @@ async def run(args: argparse.Namespace) -> int:
     generated_at = datetime.now(UTC).isoformat()
     prepared_payload = {
         "schema_version": 1,
-        "judge_label": "Prepared judge demo — real provider output",
+        "judge_label": "Source-bound release evidence - real provider output",
         "project": {
             "id": str(project.id),
             "title": project.title,
@@ -196,7 +197,7 @@ async def run(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run one exact prepared judge demo with a one-candidate Gloo cap")
+    parser = argparse.ArgumentParser(description="Create one exact source-bound acceptance artifact with a one-candidate Gloo cap")
     parser.add_argument("--source-uri", required=True)
     parser.add_argument("--title", required=True)
     parser.add_argument("--duration", type=float, required=True)

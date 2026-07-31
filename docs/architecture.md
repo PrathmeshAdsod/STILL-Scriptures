@@ -18,7 +18,7 @@ flowchart TD
 
 ## Trust boundaries
 
-- Browser clients authenticate anonymously with Firebase; the API owns workflow state and project data.
+- Browser clients use verified Firebase email/password accounts; the API owns workflow state, allowance enforcement, and project data.
 - Firebase Admin / Firestore / Cloud Tasks are server-side only.
 - Cloud Run accepts network traffic so Firebase Hosting can proxy `/api`, but every API route verifies a Firebase token and ownership. Cloud Tasks additionally requires a verified Google OIDC token with the configured audience and service-account email.
 - Only Gemini handles audiovisual video analysis. A missing or degraded modality produces abstention/degraded output, never a sensitive inference.

@@ -1,74 +1,73 @@
-# STILL demo script - target 2:45
+# STILL demo script - target 2:50
 
-Use the deployed source-bound prepared project. It is not a fixture: it exists
-only because the exact source passed the real seven-window provider pipeline.
-Never edit session state, Echo content, or watched ranges for the recording.
-Because the source is 4:05, use an honest edit after showing the live frontier:
-complete the uninterrupted watch off-camera, then cut to its genuine natural
-ending and Story Complete state.
+Use the deployed product and the entrant-selected 5:58 test URL. Sign in with
+the privately supplied Access account before recording; never show the password,
+Access code, private handoff file, cloud consoles, or hidden tabs. Use a clearly
+labelled time compression while the real worker runs. Do not edit application
+state or fabricate a reflection.
 
 ## 0:00-0:18 - Cold open
 
-**Picture:** Open on the selected story, then cut immediately to STILL's hero:
-"Let the story land before it speaks back."
+**Picture:** Open on STILL's hero: "Let the story land before it speaks back."
+Move briefly through Plans to the signed-in account allowance.
 
 **Voice:** "Most AI rushes to explain. STILL waits. It is a spoiler-safe
 reflection layer that lets a story arrive before Scripture speaks into it."
 
-## 0:18-0:42 - The promise
+## 0:18-0:48 - Submit a real story
 
-**Picture:** Enter `STILL-JUDGE-2026`, show “Guest ready,” the read-only Firebase
-label, and the original Dogs Inc YouTube embed.
+**Picture:** Paste the test URL and submit it. Show the authoritative 5:58
+duration and the real queued state.
 
-**Voice:** "A title is not evidence, and a transcript is not the whole scene.
-STILL follows both picture and sound in order. If a provider fails, the product
-fails visibly instead of fabricating a result."
+**Voice:** "This is the live product, not a prepared demo. It accepts supported
+public or unlisted YouTube stories up to six minutes. The server verifies the
+source and reserves the account allowance before paid analysis begins."
 
-## 0:42-1:12 - Working technology
+## 0:48-1:20 - Real processing
 
-**Picture:** Brief architecture card: bounded Gemini windows -> Gloo Sacred
-Timing -> canonical YouVersion passage. Overlay sanitized model, decision, and
-HTTP-success evidence only; never show keys, account pages, or raw responses.
+**Picture:** Show chronological progress for the first windows, then use an
+on-screen label such as "84 seconds later" to reach the completed 9/9 result.
 
-**Voice:** "Gemini observes exact chronological windows with append-only state,
-so earlier moments never receive future knowledge. Gloo decides whether
-reflection is timely - including the freedom to remain silent. Scripture text
-comes only from YouVersion with its version and attribution."
+**Voice:** "Gemini watches bounded audiovisual windows in order. Gloo decides
+whether a reflection is timely, including the freedom to remain silent.
+YouVersion is the only source for canonical Scripture. Jobs are durable, and a
+provider failure is shown rather than replaced with fake output."
 
-## 1:12-1:54 - Spoiler firewall
+## 1:20-2:02 - Honest result and spoiler firewall
 
-**Picture:** Begin First Watch and open “Reflections so far” at 0:00 (empty).
-Then use an honest edit to the same continuously watched session after its 3:20
-frontier and reopen it to reveal the source-bound Echo. Do not seek ahead.
+**Picture:** Show the terminal `READY_NO_ECHO` result from the test source, then
+open a previously accepted project for the watch experience if one is available
+in the same private account. At 0:00, open Reflections so far and show that
+future material is locked. Do not seek to simulate watched coverage.
 
-**Voice:** "The viewer's watched frontier is the boundary. Before I genuinely
-reach this moment, its reflection is inaccessible. Seeking ahead does not count.
-After the scene lands, the grounded Echo can appear."
+**Voice:** "For this source, STILL completed every window and chose silence.
+That is success: it will not force a verse onto a story. When an Echo is
+supported, the viewer's contiguous watched frontier controls when it can
+appear. Seeking ahead does not count."
 
-## 1:54-2:20 - Story Complete
+## 2:02-2:30 - Story Complete
 
-**Picture:** After an explicit edit, show the same session after its uninterrupted
-natural ending. Open Story Complete and show 1 Corinthians 1:27, BSB, exact text, and
-copyright attribution.
+**Picture:** If an accepted project is available, show its genuinely completed
+watch state and exact passage version and attribution. Otherwise show the UI
+contract without claiming that the test source produced an Echo.
 
 **Voice:** "Only contiguous watching and a natural ending unlock the whole-story
-arc. And sometimes the right result is no verse at all. STILL never forces a
-connection the evidence cannot support."
+arc. Every rendered passage comes from YouVersion with its version and
+attribution."
 
-## 2:20-2:45 - Close
+## 2:30-2:50 - Close
 
-**Picture:** Quick montage: hero, quiet watch, frontier, reflection. Finish on
-the STILL wordmark and public URLs.
+**Picture:** Quick montage of add, progress, quiet watch, and account allowance.
+Finish on the STILL wordmark and public URLs.
 
-**Voice:** "We built STILL for testimonies, short films, youth groups, and every
-story that deserves presence before commentary. Watch first. Reflect later.
-Meaning, never premature."
+**Voice:** "STILL is for testimonies, short films, youth groups, and every story
+that deserves presence before commentary. Watch first. Reflect later."
 
 ## Capture checklist
 
-- 1080p landscape, large cursor, readable browser zoom.
-- Public YouTube demo no longer than 3:00.
-- Real source provenance and one continuous provider-backed project.
-- Product appears in the first 20 seconds; architecture stays under 30 seconds.
-- No secrets, emails, cloud-console identifiers, private filenames, raw payloads,
-  or hidden browser tabs appear in any frame.
+- 1080p landscape, readable browser zoom, and large cursor.
+- Final public video no longer than 3:00.
+- Clearly label any time compression or cut.
+- Show the real public URL and real processing result.
+- Never expose secrets, email inboxes, passwords, Access codes, private
+  filenames, account consoles, raw provider payloads, or hidden browser tabs.
