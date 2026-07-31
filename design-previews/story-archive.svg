@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960">
+  <rect width="1440" height="960" fill="#F7F5EE"/>
+  <rect width="1440" height="360" fill="#0B1020"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="64" y="64" font-size="25" fill="#F7F5EE" font-weight="700" letter-spacing="5">STILL</text>
+    <text x="1129" y="61" font-size="13" fill="#CAD4E7">How it works</text>
+    <rect x="1247" y="36" width="129" height="42" rx="3" fill="#155EEF"/>
+    <text x="1280" y="62" fill="#F7F5EE" font-size="13" font-weight="700">Begin</text>
+  </g>
+  <g fill="#F7F5EE">
+    <text x="64" y="190" font-family="Georgia, serif" font-size="62">Stories are more than</text>
+    <text x="64" y="259" font-family="Georgia, serif" font-size="62">their ending.</text>
+    <text x="70" y="308" font-family="Arial, Helvetica, sans-serif" font-size="18" fill="#BBC8DD">STILL makes room for a few meaningful moments—never all at once.</text>
+  </g>
+  <g transform="translate(64 424)" font-family="Arial, Helvetica, sans-serif">
+    <text x="0" y="18" font-size="12" fill="#155EEF" letter-spacing="2">THE EXPERIENCE</text>
+    <text x="0" y="81" font-size="32" fill="#0B1020" font-family="Georgia, serif">One story, held carefully.</text>
+    <g transform="translate(0 135)">
+      <text x="0" y="0" font-size="12" fill="#155EEF" letter-spacing="2">01</text>
+      <text x="0" y="31" font-size="20" fill="#0B1020">Watch first</text>
+      <text x="0" y="57" font-size="14" fill="#526075">The video gets your full attention.</text>
+      <text x="0" y="121" font-size="12" fill="#155EEF" letter-spacing="2">02</text>
+      <text x="0" y="152" font-size="20" fill="#0B1020">Pause by choice</text>
+      <text x="0" y="178" font-size="14" fill="#526075">Nothing asks to be opened.</text>
+      <text x="0" y="242" font-size="12" fill="#155EEF" letter-spacing="2">03</text>
+      <text x="0" y="273" font-size="20" fill="#0B1020">Reflect with care</text>
+      <text x="0" y="299" font-size="14" fill="#526075">Scripture is exact and distinct.</text>
+    </g>
+    <rect x="408" y="0" width="904" height="444" rx="7" fill="#E9EEF8" stroke="#B8C9ED"/>
+    <rect x="432" y="24" width="856" height="305" rx="4" fill="#172238"/>
+    <rect x="459" y="48" width="802" height="257" rx="3" fill="#2D405F"/>
+    <circle cx="860" cy="176" r="36" fill="#155EEF"/>
+    <path d="M850 157l28 19-28 19z" fill="#F7F5EE"/>
+    <rect x="432" y="351" width="856" height="68" rx="4" fill="#F7F5EE"/>
+    <text x="463" y="392" font-size="15" fill="#0B1020">Reflections so far</text>
+    <text x="1237" y="392" font-size="18" fill="#155EEF">+</text>
+  </g>
+</svg>

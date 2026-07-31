@@ -1,0 +1,41 @@
+{
+  "comment": "Conservative internal budgets. Provider responses and manually verified project limits remain authoritative.",
+  "models": [
+    {
+      "model_id": "gemini-3.5-flash-lite",
+      "provider": "gemini",
+      "role": "primary",
+      "rpm": 4,
+      "tpm": 100000,
+      "rpd": 100,
+      "max_retries": 2,
+      "max_concurrent_calls": 1,
+      "requires_audio": true,
+      "requires_visual": true
+    },
+    {
+      "model_id": "gemini-3.1-flash-lite",
+      "provider": "gemini",
+      "role": "fallback",
+      "rpm": 4,
+      "tpm": 100000,
+      "rpd": 100,
+      "max_retries": 1,
+      "max_concurrent_calls": 1,
+      "requires_audio": true,
+      "requires_visual": true
+    },
+    {
+      "model_id": "gemini-3.5-flash",
+      "provider": "gemini",
+      "role": "escalation",
+      "rpm": 2,
+      "tpm": 50000,
+      "rpd": 10,
+      "max_retries": 1,
+      "max_concurrent_calls": 1,
+      "requires_audio": true,
+      "requires_visual": true
+    }
+  ]
+}

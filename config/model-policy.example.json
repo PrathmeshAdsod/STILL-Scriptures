@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "models": {
+    "gemini_primary": {
+      "provider": "gemini",
+      "model_id": "gemini-3.5-flash-lite",
+      "enabled": false,
+      "status": "PENDING_CAPABILITY_PROOF",
+      "budget": {
+        "max_concurrent_calls": 1,
+        "max_retries": 0,
+        "rpm_guardrail": null,
+        "tpm_guardrail": null,
+        "rpd_guardrail": null
+      }
+    },
+    "nvidia_optional": {
+      "provider": "nvidia",
+      "model_id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+      "enabled": false,
+      "status": "OPTIONAL_DISABLED"
+    }
+  },
+  "routing": {
+    "max_escalations_per_project": null,
+    "daily_escalation_budget": null,
+    "require_audio_and_visual_evidence": true
+  }
+}

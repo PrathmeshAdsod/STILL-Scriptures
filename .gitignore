@@ -1,0 +1,23 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Node
+node_modules/
+dist/
+
+# Local probe material. Sanitized evidence belongs in docs, never raw media or responses.
+tmp/
+artifacts/
+docs/capability-artifacts/
+
+# Firebase and Google Cloud local state
+.firebase/
+firebase-debug.log
+*.log

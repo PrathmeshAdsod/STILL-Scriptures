@@ -1,0 +1,17 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isProjectOwner(projectId) {
+      return request.auth != null
+        && firestore.get(/databases/(default)/documents/projects/$(projectId)).data.owner_id == request.auth.uid;
+    }
+
+    match /projects/{projectId}/sources/{fileName} {
+      allow create: if isProjectOwner(projectId)
+        && request.resource.size < 10 * 1024 * 1024 * 1024
+        && request.resource.contentType.matches('video/.*');
+      allow read: if isProjectOwner(projectId);
+      allow update, delete: if false;
+    }
+  }
+}

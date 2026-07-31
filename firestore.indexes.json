@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "analysisJobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "project_id", "order": "ASCENDING" },
+        { "fieldPath": "idempotency_key", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reflectionCandidates",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "knowledge_cutoff_seconds", "order": "ASCENDING" },
+        { "fieldPath": "observation_index", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

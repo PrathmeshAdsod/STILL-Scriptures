@@ -1,0 +1,10 @@
+.git
+.env
+node_modules
+apps/web/node_modules
+apps/web/dist
+__pycache__
+.pytest_cache
+*.pyc
+design-previews
+docs/real-e2e-acceptance.md

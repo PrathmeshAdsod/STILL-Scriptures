@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960">
+  <rect width="1440" height="960" fill="#F6F3EB"/>
+  <rect width="1440" height="116" fill="#0B1020"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="64" y="69" font-size="25" fill="#F6F3EB" font-weight="700" letter-spacing="5">STILL</text>
+    <text x="1035" y="65" font-size="13" fill="#C9D3E8">The idea</text>
+    <text x="1134" y="65" font-size="13" fill="#C9D3E8">Privacy</text>
+    <rect x="1247" y="40" width="129" height="42" rx="3" fill="#155EEF"/>
+    <text x="1280" y="66" fill="#F6F3EB" font-size="13" font-weight="700">Begin</text>
+  </g>
+  <rect x="64" y="182" width="741" height="519" rx="6" fill="#101827"/>
+  <rect x="86" y="204" width="697" height="420" rx="3" fill="#26334A"/>
+  <path d="M86 531C240 425 326 484 455 399c113-75 191 17 328-130v355H86z" fill="#344766" opacity=".9"/>
+  <circle cx="434" cy="414" r="43" fill="#155EEF"/>
+  <path d="M421 391l33 23-33 23z" fill="#F6F3EB"/>
+  <g fill="#0B1020">
+    <text x="887" y="312" font-family="Georgia, serif" font-size="54">A story should be</text>
+    <text x="887" y="377" font-family="Georgia, serif" font-size="54">watched before it</text>
+    <text x="887" y="442" font-family="Georgia, serif" font-size="54">is explained.</text>
+    <text x="892" y="500" font-family="Arial, Helvetica, sans-serif" font-size="18" fill="#4C5668">STILL leaves room for the story, then opens</text>
+    <text x="892" y="527" font-family="Arial, Helvetica, sans-serif" font-size="18" fill="#4C5668">a Scripture-grounded reflection by choice.</text>
+    <rect x="891" y="575" width="220" height="54" rx="3" fill="#155EEF"/>
+    <text x="922" y="609" font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#F6F3EB" font-weight="700">Start with a story  →</text>
+  </g>
+  <g transform="translate(64 776)">
+    <path d="M0 0H1312" stroke="#BFCBE3"/>
+    <text x="0" y="62" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#155EEF" letter-spacing="2">01</text>
+    <text x="45" y="62" font-family="Arial, Helvetica, sans-serif" font-size="18" fill="#0B1020">Watch without interruption</text>
+    <text x="456" y="62" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#155EEF" letter-spacing="2">02</text>
+    <text x="501" y="62" font-family="Arial, Helvetica, sans-serif" font-size="18" fill="#0B1020">Pause only when you choose</text>
+    <text x="898" y="62" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#155EEF" letter-spacing="2">03</text>
+    <text x="943" y="62" font-family="Arial, Helvetica, sans-serif" font-size="18" fill="#0B1020">Reflect with care</text>
+  </g>
+</svg>
