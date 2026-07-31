@@ -24,6 +24,19 @@ function Invoke-Gcloud {
   if ($exitCode -ne 0) { throw "gcloud failed: $($Arguments[0..([Math]::Min(2, $Arguments.Count - 1))] -join ' ')" }
 }
 
+function Test-GcloudResource {
+  param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
+  $previousPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    & gcloud @Arguments *> $null
+    $succeeded = $LASTEXITCODE -eq 0
+  } finally {
+    $ErrorActionPreference = $previousPreference
+  }
+  return $succeeded
+}
+
 function Read-DotEnv {
   $values = @{}
   foreach ($raw in Get-Content -LiteralPath $envPath) {
@@ -39,8 +52,7 @@ function Read-DotEnv {
 function Add-SecretVersion {
   param([string]$Name, [string]$Value, [string]$RuntimeServiceAccount)
   if ([string]::IsNullOrWhiteSpace($Value)) { throw "Missing value for Secret Manager secret $Name." }
-  & gcloud secrets describe $Name --project $ProjectId --format='value(name)' 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) {
+  if (-not (Test-GcloudResource secrets describe $Name --project $ProjectId --format='value(name)')) {
     Invoke-Gcloud secrets create $Name --project $ProjectId --replication-policy=automatic --quiet
   }
   $stagingRoot = Join-Path $repoRoot 'tmp'
@@ -107,8 +119,7 @@ try {
   $runtimeAccount = "$runtimeName@$ProjectId.iam.gserviceaccount.com"
   $invokerAccount = "$invokerName@$ProjectId.iam.gserviceaccount.com"
   foreach ($account in @(@{ Name = $runtimeName; Display = 'STILL API runtime' }, @{ Name = $invokerName; Display = 'STILL Cloud Tasks invoker' })) {
-    & gcloud iam service-accounts describe "$($account.Name)@$ProjectId.iam.gserviceaccount.com" --project $ProjectId --format='value(email)' 2>$null | Out-Null
-    if ($LASTEXITCODE -ne 0) { Invoke-Gcloud iam service-accounts create $account.Name --project $ProjectId --display-name=$account.Display --quiet }
+    if (-not (Test-GcloudResource iam service-accounts describe "$($account.Name)@$ProjectId.iam.gserviceaccount.com" --project $ProjectId --format='value(email)')) { Invoke-Gcloud iam service-accounts create $account.Name --project $ProjectId --display-name=$account.Display --quiet }
   }
 
   Invoke-Gcloud projects add-iam-policy-binding $ProjectId --member="serviceAccount:$runtimeAccount" --role=roles/datastore.user --condition=None --quiet
@@ -134,15 +145,13 @@ try {
   Add-SecretVersion 'still-youtube-api-key' $youtubeKeyPayload.keyString $runtimeAccount
   Add-SecretVersion 'still-access-coupon-code' $values['ACCESS_COUPON_CODE'] $runtimeAccount
 
-  & gcloud artifacts repositories describe still --project $ProjectId --location $Region --format='value(name)' 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) { Invoke-Gcloud artifacts repositories create still --project $ProjectId --location $Region --repository-format=docker --description='STILL production images' --quiet }
+  if (-not (Test-GcloudResource artifacts repositories describe still --project $ProjectId --location $Region --format='value(name)')) { Invoke-Gcloud artifacts repositories create still --project $ProjectId --location $Region --repository-format=docker --description='STILL production images' --quiet }
 
   $tag = (& git rev-parse --short=12 HEAD).Trim()
   Invoke-Gcloud builds submit . --project $ProjectId --config cloudbuild.yaml --substitutions="_REGION=$Region,_TAG=$tag" --quiet
   $image = "$Region-docker.pkg.dev/$ProjectId/still/still-api:$tag"
 
-  & gcloud tasks queues describe $Queue --project $ProjectId --location $Region --format='value(name)' 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) {
+  if (-not (Test-GcloudResource tasks queues describe $Queue --project $ProjectId --location $Region --format='value(name)')) {
     Invoke-Gcloud tasks queues create $Queue --project $ProjectId --location $Region --max-dispatches-per-second=1 --max-concurrent-dispatches=1 --max-attempts=2 --quiet
   } else {
     Invoke-Gcloud tasks queues update $Queue --project $ProjectId --location $Region --max-dispatches-per-second=1 --max-concurrent-dispatches=1 --max-attempts=2 --quiet
