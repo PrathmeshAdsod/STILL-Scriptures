@@ -148,8 +148,10 @@ try {
   if (-not (Test-GcloudResource artifacts repositories describe still --project $ProjectId --location $Region --format='value(name)')) { Invoke-Gcloud artifacts repositories create still --project $ProjectId --location $Region --repository-format=docker --description='STILL production images' --quiet }
 
   $tag = (& git rev-parse --short=12 HEAD).Trim()
-  Invoke-Gcloud builds submit . --project $ProjectId --config cloudbuild.yaml --substitutions="_REGION=$Region,_TAG=$tag" --quiet
   $image = "$Region-docker.pkg.dev/$ProjectId/still/still-api:$tag"
+  if (-not (Test-GcloudResource artifacts docker images describe $image --project $ProjectId --format='value(image_summary.digest)')) {
+    Invoke-Gcloud builds submit . --project $ProjectId --config cloudbuild.yaml --substitutions="_REGION=$Region,_TAG=$tag" --quiet
+  }
 
   if (-not (Test-GcloudResource tasks queues describe $Queue --project $ProjectId --location $Region --format='value(name)')) {
     Invoke-Gcloud tasks queues create $Queue --project $ProjectId --location $Region --max-dispatches-per-second=1 --max-concurrent-dispatches=1 --max-attempts=2 --quiet
@@ -158,9 +160,22 @@ try {
   }
 
   $hostingOrigin = "https://$ProjectId.web.app"
-  $environment = "APP_MODE=production,USE_PROVIDER_FIXTURES=false,LOCAL_WORKER_ENABLED=false,GOOGLE_CLOUD_PROJECT=$ProjectId,FIREBASE_PROJECT_ID=$ProjectId,GOOGLE_CLOUD_LOCATION=$Region,CLOUD_TASKS_QUEUE=$Queue,WORKER_BASE_URL=https://pending.invalid,WORKER_INVOKER_SERVICE_ACCOUNT=$invokerAccount,CORS_ORIGINS=[`"$hostingOrigin`"],GLOO_ENDPOINT_MODE=completions_v2,GLOO_MAX_CANDIDATES_PER_PROJECT=1,YVP_ALLOWED_BIBLE_IDS=[3034],MAX_VIDEO_DURATION_SECONDS=360,FREE_ANALYSIS_LIFETIME_LIMIT=1,ACCESS_ANALYSIS_DAILY_LIMIT=2,MAX_ANALYSIS_GLOBAL_PER_DAY=20,DAILY_ESCALATION_BUDGET=0"
+  $environmentValues = [ordered]@{
+    APP_MODE = 'production'; USE_PROVIDER_FIXTURES = 'false'; LOCAL_WORKER_ENABLED = 'false'
+    GOOGLE_CLOUD_PROJECT = $ProjectId; FIREBASE_PROJECT_ID = $ProjectId; GOOGLE_CLOUD_LOCATION = $Region
+    CLOUD_TASKS_QUEUE = $Queue; WORKER_BASE_URL = 'https://pending.invalid'; WORKER_INVOKER_SERVICE_ACCOUNT = $invokerAccount
+    CORS_ORIGINS = "[`"$hostingOrigin`"]"; GLOO_ENDPOINT_MODE = 'completions_v2'; GLOO_MAX_CANDIDATES_PER_PROJECT = '1'
+    YVP_ALLOWED_BIBLE_IDS = '[3034]'; MAX_VIDEO_DURATION_SECONDS = '360'; FREE_ANALYSIS_LIFETIME_LIMIT = '1'
+    ACCESS_ANALYSIS_DAILY_LIMIT = '2'; MAX_ANALYSIS_GLOBAL_PER_DAY = '20'; DAILY_ESCALATION_BUDGET = '0'
+  }
+  $environmentPath = Join-Path $repoRoot 'tmp/runtime-environment.json'
+  [System.IO.File]::WriteAllText($environmentPath, ($environmentValues | ConvertTo-Json -Compress), [System.Text.UTF8Encoding]::new($false))
   $secrets = 'GEMINI_API_KEY=still-gemini-api-key:latest,GLOO_CLIENT_ID=still-gloo-client-id:latest,GLOO_CLIENT_SECRET=still-gloo-client-secret:latest,YVP_APP_KEY=still-yvp-app-key:latest,YOUTUBE_API_KEY=still-youtube-api-key:latest,ACCESS_COUPON_CODE=still-access-coupon-code:latest'
-  Invoke-Gcloud run deploy $Service --project $ProjectId --region $Region --image $image --service-account $runtimeAccount --allow-unauthenticated --port=8080 --cpu=1 --memory=1Gi --min=0 --max=1 --concurrency=20 --timeout=1800 --set-env-vars=$environment --set-secrets=$secrets --quiet
+  try {
+    Invoke-Gcloud run deploy $Service --project $ProjectId --region $Region --image $image --service-account $runtimeAccount --allow-unauthenticated --port=8080 --cpu=1 --memory=1Gi --min=0 --max=1 --concurrency=20 --timeout=1800 --env-vars-file=$environmentPath --set-secrets=$secrets --quiet
+  } finally {
+    if (Test-Path -LiteralPath $environmentPath) { Remove-Item -LiteralPath $environmentPath -Force }
+  }
 
   $serviceUrl = (& gcloud run services describe $Service --project $ProjectId --region $Region --format='value(status.url)').Trim()
   if (-not $serviceUrl) { throw 'Cloud Run deployed but did not return a service URL.' }
