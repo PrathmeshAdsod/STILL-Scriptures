@@ -35,11 +35,11 @@ signed-out link checks and Kaggle submission only.
 ## Public package
 
 - [x] Firebase showcase opens publicly at <https://still-scriptures.web.app>.
-- [ ] Public GitHub repository is pushed and opens signed out.
+- [x] Public GitHub repository is pushed and opens signed out.
 - [x] Local Kaggle notebook executes top-to-bottom and contains no credentials.
 - [ ] Notebook is attached publicly to the Kaggle writeup.
 - [ ] Public YouTube demo is 3:00 or shorter and plays signed out.
-- [x] `still-cover.png` is ready as the cover image.
+- [x] `still-cover.png` is ready at Kaggle's 2:1 aspect ratio (1120 x 560).
 - [ ] Replace the demo placeholder in `kaggle-writeup.md`; final text remains
   under 500 words.
 - [x] Claims distinguish live provider checks, local E2E, static deployment,
