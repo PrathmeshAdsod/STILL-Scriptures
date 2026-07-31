@@ -50,20 +50,36 @@ function Read-DotEnv {
   return $values
 }
 
-function Add-SecretVersion {
+function Sync-SecretValue {
   param([string]$Name, [string]$Value, [string]$RuntimeServiceAccount)
   if ([string]::IsNullOrWhiteSpace($Value)) { throw "Missing value for Secret Manager secret $Name." }
-  if (-not (Test-GcloudResource secrets describe $Name --project $ProjectId --format='value(name)')) {
+  $secretExists = Test-GcloudResource secrets describe $Name --project $ProjectId --format='value(name)'
+  if (-not $secretExists) {
     Invoke-Gcloud secrets create $Name --project $ProjectId --replication-policy=automatic --quiet
   }
   $stagingRoot = Join-Path $repoRoot 'tmp'
   [System.IO.Directory]::CreateDirectory($stagingRoot) | Out-Null
   $stagingPath = Join-Path $stagingRoot ("secret-{0}.txt" -f [guid]::NewGuid().ToString('N'))
+  $existingPath = Join-Path $stagingRoot ("secret-current-{0}.txt" -f [guid]::NewGuid().ToString('N'))
   try {
     [System.IO.File]::WriteAllText($stagingPath, $Value, [System.Text.UTF8Encoding]::new($false))
-    Invoke-Gcloud secrets versions add $Name --project $ProjectId --data-file=$stagingPath --quiet
+    $needsVersion = $true
+    if ($secretExists) {
+      & gcloud secrets versions access latest --secret=$Name --project=$ProjectId --out-file=$existingPath *> $null
+      if ($LASTEXITCODE -eq 0) {
+        $desiredBytes = [System.IO.File]::ReadAllBytes($stagingPath)
+        $existingBytes = [System.IO.File]::ReadAllBytes($existingPath)
+        $needsVersion = -not [System.Security.Cryptography.CryptographicOperations]::FixedTimeEquals($desiredBytes, $existingBytes)
+      }
+    }
+    if ($needsVersion) {
+      Invoke-Gcloud secrets versions add $Name --project $ProjectId --data-file=$stagingPath --quiet
+    } else {
+      Write-Host "Secret $Name already matches its latest version."
+    }
   } finally {
     if (Test-Path -LiteralPath $stagingPath) { Remove-Item -LiteralPath $stagingPath -Force }
+    if (Test-Path -LiteralPath $existingPath) { Remove-Item -LiteralPath $existingPath -Force }
   }
   Invoke-Gcloud secrets add-iam-policy-binding $Name --project $ProjectId --member="serviceAccount:$RuntimeServiceAccount" --role=roles/secretmanager.secretAccessor --quiet
 }
@@ -139,12 +155,12 @@ try {
   if (-not $youtubeKey) { throw 'The restricted still-youtube-metadata API key is missing.' }
   $youtubeKeyPayload = & gcloud services api-keys get-key-string $youtubeKey --project $ProjectId --format=json | ConvertFrom-Json
 
-  Add-SecretVersion 'still-gemini-api-key' $values['GEMINI_API_KEY'] $runtimeAccount
-  Add-SecretVersion 'still-gloo-client-id' $values['GLOO_CLIENT_ID'] $runtimeAccount
-  Add-SecretVersion 'still-gloo-client-secret' $values['GLOO_CLIENT_SECRET'] $runtimeAccount
-  Add-SecretVersion 'still-yvp-app-key' $values['YVP_APP_KEY'] $runtimeAccount
-  Add-SecretVersion 'still-youtube-api-key' $youtubeKeyPayload.keyString $runtimeAccount
-  Add-SecretVersion 'still-access-coupon-code' $values['ACCESS_COUPON_CODE'] $runtimeAccount
+  Sync-SecretValue 'still-gemini-api-key' $values['GEMINI_API_KEY'] $runtimeAccount
+  Sync-SecretValue 'still-gloo-client-id' $values['GLOO_CLIENT_ID'] $runtimeAccount
+  Sync-SecretValue 'still-gloo-client-secret' $values['GLOO_CLIENT_SECRET'] $runtimeAccount
+  Sync-SecretValue 'still-yvp-app-key' $values['YVP_APP_KEY'] $runtimeAccount
+  Sync-SecretValue 'still-youtube-api-key' $youtubeKeyPayload.keyString $runtimeAccount
+  Sync-SecretValue 'still-access-coupon-code' $values['ACCESS_COUPON_CODE'] $runtimeAccount
 
   if (-not (Test-GcloudResource artifacts repositories describe still --project $ProjectId --location $Region --format='value(name)')) { Invoke-Gcloud artifacts repositories create still --project $ProjectId --location $Region --repository-format=docker --description='STILL production images' --quiet }
 
