@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hmac
 from contextlib import asynccontextmanager
 from uuid import UUID
@@ -19,6 +20,7 @@ from .schemas import (
     AnalysisJob,
     Project,
     ProjectCreateResponse,
+    ProjectLibraryItem,
     ProjectStatus,
     PublicProjectResponse,
     SourceCreateRequest,
@@ -36,6 +38,7 @@ from .media import delete_uploaded_source, validate_upload_storage_path
 from .watching import contiguous_frontier, normalise_ranges, qualifies_for_story_complete
 from .worker import CausalAnalysisWorker
 from .youtube import YoutubeMetadataClient
+from .youtube import youtube_video_id
 from .providers import GeminiVideoProvider, GlooSacredTimingProvider, NvidiaVideoProvider, YouVersionClient
 
 
@@ -118,6 +121,39 @@ async def redeem_access_code(payload: AccessCodeRequest, request: Request, user_
     return await account_status_for(request, user_id)
 
 
+@app.delete("/api/account", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_account(request: Request, user_id: str = Depends(current_user)) -> Response:
+    await store_for(request).delete_account(user_id)
+    settings: Settings = request.app.state.settings
+    if settings.app_mode == "production":
+        import firebase_admin
+        import firebase_admin.auth
+
+        try:
+            firebase_admin.get_app()
+        except ValueError:
+            firebase_admin.initialize_app(options={"projectId": settings.firebase_project_id})
+        await asyncio.to_thread(firebase_admin.auth.delete_user, user_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+async def library_item(request: Request, project: Project, user_id: str) -> ProjectLibraryItem:
+    latest = await store_for(request).latest_session(owner_id=user_id, project_id=project.id)
+    return ProjectLibraryItem(project=project, latest_session=latest)
+
+
+@app.get("/api/projects", response_model=list[ProjectLibraryItem])
+async def list_projects(request: Request, user_id: str = Depends(current_user)) -> list[ProjectLibraryItem]:
+    projects = await store_for(request).list_projects(user_id)
+    return [await library_item(request, project, user_id) for project in projects]
+
+
+@app.get("/api/projects/lookup/youtube", response_model=ProjectLibraryItem | None)
+async def lookup_youtube_project(url: str, request: Request, user_id: str = Depends(current_user)) -> ProjectLibraryItem | None:
+    project = await store_for(request).find_youtube_project(user_id, youtube_video_id(url))
+    return await library_item(request, project, user_id) if project else None
+
+
 @app.post("/api/projects", response_model=ProjectCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(payload: SourceCreateRequest, request: Request, user_id: str = Depends(current_user)) -> ProjectCreateResponse:
     project = Project(owner_id=user_id, title=payload.title, status=ProjectStatus.SOURCE_PENDING)
@@ -134,6 +170,7 @@ async def set_youtube_source(project_id: UUID, payload: YoutubeSourceRequest, re
     project.source = SourceRecord(
         kind=SourceKind.YOUTUBE,
         public_url=f"https://www.youtube.com/watch?v={metadata.video_id}",
+        youtube_video_id=metadata.video_id,
         title=payload.title or metadata.title,
         duration_seconds=metadata.duration_seconds,
     )
@@ -262,6 +299,19 @@ async def create_viewing_session(project_id: UUID, request: Request, user_id: st
     return ViewingSessionCreateResponse(session_id=session.id)
 
 
+@app.post("/api/projects/{project_id}/viewing-sessions/resume", response_model=ViewingSession)
+async def resume_viewing_session(project_id: UUID, request: Request, user_id: str = Depends(current_user)) -> ViewingSession:
+    project = await owned_project(request, project_id, user_id)
+    if project.status not in {ProjectStatus.READY, ProjectStatus.READY_NO_ECHO}:
+        raise api_error(ErrorCode.INVALID_STATE, "A viewing session starts only after the story is ready.", 409)
+    session = await store_for(request).latest_session(owner_id=user_id, project_id=project.id)
+    if session:
+        return session
+    session = ViewingSession(project_id=project.id, owner_id=user_id)
+    await store_for(request).put_session(session)
+    return session
+
+
 @app.patch("/api/projects/{project_id}/viewing-sessions/{session_id}")
 async def update_viewing_session(project_id: UUID, session_id: UUID, payload: ViewingSessionPatch, request: Request, user_id: str = Depends(current_user)) -> ViewingSession:
     await owned_project(request, project_id, user_id)
@@ -280,7 +330,7 @@ async def update_viewing_session(project_id: UUID, session_id: UUID, payload: Vi
 async def get_available_echoes(project_id: UUID, session_id: UUID, request: Request, user_id: str = Depends(current_user)) -> list:
     await owned_project(request, project_id, user_id)
     session = await store_for(request).get_session(session_id)
-    if not session or session.owner_id != user_id:
+    if not session or session.owner_id != user_id or session.project_id != project_id:
         raise not_found("The viewing session does not exist.")
     echoes = await store_for(request).echoes(project_id)
     return [echo for echo in echoes if echo.knowledge_cutoff_seconds <= session.contiguous_frontier_seconds + 1]
@@ -290,7 +340,7 @@ async def get_available_echoes(project_id: UUID, session_id: UUID, request: Requ
 async def story_reflection(project_id: UUID, session_id: UUID, request: Request, user_id: str = Depends(current_user)) -> list:
     await owned_project(request, project_id, user_id)
     session = await store_for(request).get_session(session_id)
-    if not session or session.owner_id != user_id or not session.story_complete:
+    if not session or session.owner_id != user_id or session.project_id != project_id or not session.story_complete:
         raise api_error(ErrorCode.INVALID_STATE, "Story Complete requires contiguous watched coverage and a natural ending.", 409)
     return await store_for(request).echoes(project_id)
 

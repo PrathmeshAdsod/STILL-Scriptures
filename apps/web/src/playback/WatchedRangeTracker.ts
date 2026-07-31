@@ -24,9 +24,10 @@ export class WatchedRangeTracker {
   markSeeking() { this.seeking = true; this.lastTime = undefined; }
   sample(currentTime: number, playbackRate = 1) {
     if (this.playing && !this.seeking && this.lastTime !== undefined) {
-      // Browsers can pause event delivery while a tab is backgrounded; an explicit seek event,
-      // not a short timer gap, is the authoritative signal that coverage must be broken.
-      const maxExpectedJump = Math.max(20, playbackRate * 20);
+      // The YouTube iframe does not emit a seek event to the parent page. A
+      // playhead jump beyond normal callback jitter must therefore break
+      // coverage even when markSeeking was not called.
+      const maxExpectedJump = Math.max(2.5, playbackRate * 2.5);
       if (currentTime >= this.lastTime && currentTime - this.lastTime <= maxExpectedJump) this.ranges = mergeRanges([...this.ranges, [this.lastTime, currentTime]]);
     }
     this.lastTime = currentTime;

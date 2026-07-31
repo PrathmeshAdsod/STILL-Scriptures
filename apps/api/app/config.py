@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     worker_invoker_service_account: str | None = None
     max_video_duration_seconds: int = Field(default=360, ge=30, le=1_800)
     free_analysis_lifetime_limit: int = Field(default=1, ge=1, le=5)
-    access_analysis_daily_limit: int = Field(default=2, ge=1, le=20)
+    access_analysis_daily_limit: int = Field(default=10, ge=1, le=20)
     max_analysis_global_per_day: int = Field(default=20, ge=1, le=500)
     access_coupon_code: str | None = None
     gemini_api_key: str | None = None
@@ -72,8 +72,8 @@ class Settings(BaseSettings):
             raise ValueError("Production refuses to start when USE_PROVIDER_FIXTURES=true.")
         if self.app_mode == "production" and self.local_worker_enabled:
             raise ValueError("Production requires Cloud Tasks; LOCAL_WORKER_ENABLED must be false.")
-        if self.app_mode == "production" and self.gloo_max_candidates_per_project != 1:
-            raise ValueError("Competition production permits exactly one paid Gloo candidate per project.")
+        if self.app_mode == "production" and self.gloo_max_candidates_per_project > 3:
+            raise ValueError("Competition production permits at most three paid Gloo candidates per project.")
         if self.app_mode == "production" and not self.youtube_api_key:
             raise ValueError("Production requires YOUTUBE_API_KEY for authoritative source validation.")
         if self.app_mode == "production" and not self.access_coupon_code:

@@ -12,6 +12,30 @@ from .routing import VideoModelRouter
 from .schemas import AnalysisJob, AnalysisOutcome, Echo, ModalityStatus, NarrativeState, ProjectStatus, ReflectionCandidate, ReflectionCandidateStatus, WindowProvenance
 
 
+def select_diverse_candidates(candidates: list[ReflectionCandidate], limit: int) -> list[ReflectionCandidate]:
+    """Prefer strong candidates from different moments before duplicates."""
+    ranked = sorted(candidates, key=lambda candidate: candidate.observation.confidence, reverse=True)
+    selected: list[ReflectionCandidate] = []
+    selected_ids: set[UUID] = set()
+    seen_cutoffs: set[float] = set()
+    for candidate in ranked:
+        cutoff = round(candidate.knowledge_cutoff_seconds, 3)
+        if cutoff in seen_cutoffs:
+            continue
+        selected.append(candidate)
+        selected_ids.add(candidate.id)
+        seen_cutoffs.add(cutoff)
+        if len(selected) == limit:
+            return selected
+    for candidate in ranked:
+        if candidate.id in selected_ids:
+            continue
+        selected.append(candidate)
+        if len(selected) == limit:
+            break
+    return selected
+
+
 class CausalAnalysisWorker:
     pipeline_version = "still-causal-v2"
     prompt_version = "bounded-audiovisual-observation-v2"
@@ -159,9 +183,14 @@ class CausalAnalysisWorker:
                 for candidate in await self.store.candidates(project.id)
                 if candidate.status == ReflectionCandidateStatus.PENDING
             ]
-            pending_candidates.sort(key=lambda candidate: candidate.observation.confidence, reverse=True)
-            selected_candidates = pending_candidates[: self.gloo.settings.gloo_max_candidates_per_project]
-            for skipped_candidate in pending_candidates[self.gloo.settings.gloo_max_candidates_per_project :]:
+            selected_candidates = select_diverse_candidates(
+                pending_candidates,
+                self.gloo.settings.gloo_max_candidates_per_project,
+            )
+            selected_ids = {candidate.id for candidate in selected_candidates}
+            for skipped_candidate in pending_candidates:
+                if skipped_candidate.id in selected_ids:
+                    continue
                 skipped_candidate.status = ReflectionCandidateStatus.NO_ECHO
                 await self.store.put_candidate(skipped_candidate)
             for candidate in selected_candidates:
@@ -193,6 +222,7 @@ class CausalAnalysisWorker:
                     await self.store.put_candidate(candidate)
                     continue
                 final_echo = draft.model_copy(update={
+                    "scripture_reference": passage.reference or draft.scripture_reference,
                     "bible_id": passage.bible_id,
                     "bible_version": passage.bible_version,
                     "exact_scripture_text": passage.text,

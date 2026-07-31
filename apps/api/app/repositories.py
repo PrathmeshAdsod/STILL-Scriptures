@@ -6,7 +6,8 @@ from enum import StrEnum
 from typing import Protocol
 from uuid import UUID
 
-from .schemas import AccountPlan, AccountStatus, AnalysisJob, Echo, NarrativeState, Project, ReflectionCandidate, ViewingSession, WindowProvenance
+from .schemas import AccountPlan, AccountStatus, AnalysisJob, Echo, NarrativeState, Project, ProjectStatus, ReflectionCandidate, SourceKind, ViewingSession, WindowProvenance
+from .youtube import youtube_video_id
 
 
 class AnalysisReservationResult(StrEnum):
@@ -18,6 +19,8 @@ class AnalysisReservationResult(StrEnum):
 class DataStore(Protocol):
     async def put_project(self, project: Project) -> None: ...
     async def get_project(self, project_id: UUID) -> Project | None: ...
+    async def list_projects(self, owner_id: str) -> list[Project]: ...
+    async def find_youtube_project(self, owner_id: str, video_id: str) -> Project | None: ...
     async def put_job(self, job: AnalysisJob) -> None: ...
     async def get_job(self, job_id: UUID) -> AnalysisJob | None: ...
     async def find_job_by_key(self, project_id: UUID, key: str) -> AnalysisJob | None: ...
@@ -31,10 +34,12 @@ class DataStore(Protocol):
     async def echoes(self, project_id: UUID) -> list[Echo]: ...
     async def put_session(self, session: ViewingSession) -> None: ...
     async def get_session(self, session_id: UUID) -> ViewingSession | None: ...
+    async def latest_session(self, *, owner_id: str, project_id: UUID) -> ViewingSession | None: ...
     async def account_status(self, *, owner_id: str, free_limit: int, access_daily_limit: int, max_duration_seconds: int) -> AccountStatus: ...
     async def grant_access(self, *, owner_id: str) -> None: ...
     async def reserve_analysis(self, *, owner_id: str, project_id: UUID, free_limit: int, access_daily_limit: int, global_limit: int) -> AnalysisReservationResult: ...
     async def delete_project(self, project_id: UUID) -> None: ...
+    async def delete_account(self, owner_id: str) -> None: ...
 
 
 class InMemoryDataStore:
@@ -60,6 +65,34 @@ class InMemoryDataStore:
 
     async def get_project(self, project_id: UUID) -> Project | None:
         return self.projects.get(project_id)
+
+    async def list_projects(self, owner_id: str) -> list[Project]:
+        return sorted((project for project in self.projects.values() if project.owner_id == owner_id), key=lambda item: item.updated_at, reverse=True)
+
+    async def find_youtube_project(self, owner_id: str, video_id: str) -> Project | None:
+        reusable = {
+            ProjectStatus.SOURCE_PENDING,
+            ProjectStatus.QUEUED,
+            ProjectStatus.PREPARING,
+            ProjectStatus.ANALYZING,
+            ProjectStatus.GROUNDING,
+            ProjectStatus.READY,
+            ProjectStatus.READY_NO_ECHO,
+            ProjectStatus.FAILED_RETRIABLE,
+        }
+        for project in await self.list_projects(owner_id):
+            source = project.source
+            if not source or source.kind != SourceKind.YOUTUBE or project.status not in reusable:
+                continue
+            stored_id = source.youtube_video_id
+            if not stored_id and source.public_url:
+                try:
+                    stored_id = youtube_video_id(source.public_url)
+                except Exception:
+                    stored_id = None
+            if stored_id == video_id:
+                return project
+        return None
 
     async def put_job(self, job: AnalysisJob) -> None:
         job.updated_at = datetime.now(UTC)
@@ -113,10 +146,15 @@ class InMemoryDataStore:
         return sorted(self.echo_records.get(project_id, []), key=lambda item: item.knowledge_cutoff_seconds)
 
     async def put_session(self, session: ViewingSession) -> None:
+        session.updated_at = datetime.now(UTC)
         self.sessions[session.id] = session
 
     async def get_session(self, session_id: UUID) -> ViewingSession | None:
         return self.sessions.get(session_id)
+
+    async def latest_session(self, *, owner_id: str, project_id: UUID) -> ViewingSession | None:
+        matches = [session for session in self.sessions.values() if session.owner_id == owner_id and session.project_id == project_id]
+        return max(matches, key=lambda item: item.updated_at) if matches else None
 
     async def account_status(self, *, owner_id: str, free_limit: int, access_daily_limit: int, max_duration_seconds: int) -> AccountStatus:
         plan = self.account_profiles.get(owner_id, AccountPlan.FREE)
@@ -161,6 +199,7 @@ class InMemoryDataStore:
         self.window_records.pop(project_id, None)
         self.candidate_records.pop(project_id, None)
         self.echo_records.pop(project_id, None)
+        self.analysis_reservations.pop(project_id, None)
         for job_id, job in list(self.jobs.items()):
             if job.project_id == project_id:
                 self.jobs.pop(job_id)
@@ -168,6 +207,22 @@ class InMemoryDataStore:
         for session_id, session in list(self.sessions.items()):
             if session.project_id == project_id:
                 self.sessions.pop(session_id)
+
+    async def delete_account(self, owner_id: str) -> None:
+        for project in list(await self.list_projects(owner_id)):
+            await self.delete_project(project.id)
+        self.account_profiles.pop(owner_id, None)
+        self.free_usage.pop(owner_id, None)
+        for usage in self.analysis_usage.values():
+            users = usage.get("users", {})
+            if isinstance(users, dict):
+                users.pop(owner_id, None)
+        for session_id, session in list(self.sessions.items()):
+            if session.owner_id == owner_id:
+                self.sessions.pop(session_id)
+        for project_id, reserved_owner in list(self.analysis_reservations.items()):
+            if reserved_owner == owner_id:
+                self.analysis_reservations.pop(project_id)
 
 
 class FirestoreDataStore:
@@ -189,6 +244,30 @@ class FirestoreDataStore:
     def _doc(model: object) -> dict:
         return model.model_dump(mode="json")  # type: ignore[attr-defined]
 
+    @staticmethod
+    def _session_doc(session: ViewingSession) -> dict:
+        """Encode watched ranges without Firestore's forbidden nested arrays."""
+        document = session.model_dump(mode="json")
+        document["watched_ranges"] = [
+            {"start_seconds": start, "end_seconds": end}
+            for start, end in session.watched_ranges
+        ]
+        return document
+
+    @staticmethod
+    def _session_from_doc(document: dict) -> ViewingSession:
+        payload = dict(document)
+        ranges: list[tuple[float, float]] = []
+        for item in payload.get("watched_ranges", []):
+            if isinstance(item, dict) and "start_seconds" in item and "end_seconds" in item:
+                ranges.append((float(item["start_seconds"]), float(item["end_seconds"])))
+            elif isinstance(item, (list, tuple)) and len(item) == 2:
+                # Backward compatibility for test/emulator documents. Real
+                # Firestore rejects this representation once a range exists.
+                ranges.append((float(item[0]), float(item[1])))
+        payload["watched_ranges"] = ranges
+        return ViewingSession.model_validate(payload)
+
     async def put_project(self, project: Project) -> None:
         project.updated_at = datetime.now(UTC)
         await self.projects.document(str(project.id)).set(self._doc(project))
@@ -196,6 +275,35 @@ class FirestoreDataStore:
     async def get_project(self, project_id: UUID) -> Project | None:
         snapshot = await self.projects.document(str(project_id)).get()
         return Project.model_validate(snapshot.to_dict()) if snapshot.exists else None
+
+    async def list_projects(self, owner_id: str) -> list[Project]:
+        records = [Project.model_validate(item.to_dict()) async for item in self.projects.where("owner_id", "==", owner_id).stream()]
+        return sorted(records, key=lambda item: item.updated_at, reverse=True)
+
+    async def find_youtube_project(self, owner_id: str, video_id: str) -> Project | None:
+        reusable = {
+            ProjectStatus.SOURCE_PENDING,
+            ProjectStatus.QUEUED,
+            ProjectStatus.PREPARING,
+            ProjectStatus.ANALYZING,
+            ProjectStatus.GROUNDING,
+            ProjectStatus.READY,
+            ProjectStatus.READY_NO_ECHO,
+            ProjectStatus.FAILED_RETRIABLE,
+        }
+        for project in await self.list_projects(owner_id):
+            source = project.source
+            if not source or source.kind != SourceKind.YOUTUBE or project.status not in reusable:
+                continue
+            stored_id = source.youtube_video_id
+            if not stored_id and source.public_url:
+                try:
+                    stored_id = youtube_video_id(source.public_url)
+                except Exception:
+                    stored_id = None
+            if stored_id == video_id:
+                return project
+        return None
 
     async def put_job(self, job: AnalysisJob) -> None:
         job.updated_at = datetime.now(UTC)
@@ -246,11 +354,17 @@ class FirestoreDataStore:
         return [Echo.model_validate(item.to_dict()) async for item in query.stream()]
 
     async def put_session(self, session: ViewingSession) -> None:
-        await self.sessions.document(str(session.id)).set(self._doc(session))
+        session.updated_at = datetime.now(UTC)
+        await self.sessions.document(str(session.id)).set(self._session_doc(session))
 
     async def get_session(self, session_id: UUID) -> ViewingSession | None:
         snapshot = await self.sessions.document(str(session_id)).get()
-        return ViewingSession.model_validate(snapshot.to_dict()) if snapshot.exists else None
+        return self._session_from_doc(snapshot.to_dict()) if snapshot.exists else None
+
+    async def latest_session(self, *, owner_id: str, project_id: UUID) -> ViewingSession | None:
+        records = [self._session_from_doc(item.to_dict()) async for item in self.sessions.where("project_id", "==", str(project_id)).stream()]
+        matches = [session for session in records if session.owner_id == owner_id]
+        return max(matches, key=lambda item: item.updated_at) if matches else None
 
     async def account_status(self, *, owner_id: str, free_limit: int, access_daily_limit: int, max_duration_seconds: int) -> AccountStatus:
         day = datetime.now(UTC).date().isoformat()
@@ -322,4 +436,23 @@ class FirestoreDataStore:
         sessions = [item async for item in self.sessions.where("project_id", "==", str(project_id)).stream()]
         for document in sessions:
             await document.reference.delete()
+        await self.analysis_reservations.document(str(project_id)).delete()
         await project_doc.delete()
+
+    async def delete_account(self, owner_id: str) -> None:
+        for project in list(await self.list_projects(owner_id)):
+            await self.delete_project(project.id)
+        orphan_jobs = [item async for item in self.jobs.where("owner_id", "==", owner_id).stream()]
+        for document in orphan_jobs:
+            await document.reference.delete()
+        orphan_sessions = [item async for item in self.sessions.where("owner_id", "==", owner_id).stream()]
+        for document in orphan_sessions:
+            await document.reference.delete()
+        reservations = [item async for item in self.analysis_reservations.where("owner_id", "==", owner_id).stream()]
+        for document in reservations:
+            await document.reference.delete()
+        usage_days = [item async for item in self.analysis_usage.stream()]
+        for day in usage_days:
+            await day.reference.collection("users").document(owner_id).delete()
+        await self.account_profiles.document(owner_id).delete()
+        await self.account_usage.document(owner_id).delete()

@@ -5,6 +5,7 @@ export interface SourceRecord {
   kind: SourceKind;
   storage_path?: string;
   public_url?: string;
+  youtube_video_id?: string;
   source_hash?: string;
   title: string;
   duration_seconds?: number;
@@ -24,6 +25,8 @@ export interface Project {
   current_job_id?: string;
   failure_code?: string;
   failure_message?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Echo {
@@ -49,6 +52,13 @@ export interface ViewingSession {
   contiguous_frontier_seconds: number;
   story_complete: boolean;
   ended_naturally: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectLibraryItem {
+  project: Project;
+  latest_session?: ViewingSession;
 }
 
 export interface AccountStatus {

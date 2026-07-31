@@ -12,7 +12,8 @@ As of 2026-08-01, the public application is live at
 Firestore, Cloud Tasks, Cloud Run, Secret Manager, and Hosting are deployed.
 The arbitrary-video cloud gate passed on the entrant's 5:58 source: 9/9 full
 audiovisual windows completed in about 84 seconds with an honest
-`READY_NO_ECHO` result.
+`READY_NO_ECHO` result. The final “Pip” run also completed 7/7 windows and
+persisted two verified timed reflections at 2:00 and 3:20.
 
 ## Product contract
 
@@ -30,11 +31,11 @@ audiovisual windows completed in about 84 seconds with an honest
 
 | Area | Status |
 | --- | --- |
-| Product UI | Public landing, auth, Plans, account, add, processing, watch, completion, and reflection flows implemented |
-| Authentication | Email/password sign-up, verification, sign-in, sign-out, and password reset deployed; anonymous auth disabled |
-| API and worker | 27 tests pass; deployed Cloud Tasks worker completed 9/9 windows for the 5:58 acceptance source |
+| Product UI | Public landing, auth, Plans, account, add, My Videos, processing, watch, completion, and reflection flows implemented |
+| Authentication | Email/password sign-up, verification, sign-in, sign-out, password reset, and complete account deletion deployed; anonymous auth disabled |
+| API and worker | 32 tests pass; saved-library/session APIs are deployed; Cloud Tasks completed both the 9/9 abstention source and the 7/7 two-reflection Pip source |
 | Gemini | Live bounded full-audiovisual analysis verified |
-| Gloo | Live abstention and accepted-candidate paths verified; production candidate cap is one |
+| Gloo | Live abstention and accepted-candidate paths verified; production candidate cap is three distinct moments |
 | YouVersion | Exact canonical passage, version, and copyright metadata verified |
 | Firebase and Google Cloud | Hosting, Auth, Firestore, Tasks, Run, and Secret Manager deployed |
 | Browser QA | Desktop and mobile production checks pass with zero console errors |
@@ -44,15 +45,18 @@ audiovisual windows completed in about 84 seconds with an honest
 
 - Free accounts receive one analysis total, with a maximum video length of six
   minutes.
-- A privately issued Access Pass grants two analyses per UTC day, also limited
-  to six minutes each.
+- A privately issued Access Pass temporarily grants ten analyses per UTC day
+  for final testing, also limited to six minutes each. Reduce it to two before
+  the judge handoff.
 - Payments are intentionally absent from this competition release.
+- An analyzed YouTube ID is reused from My Videos without consuming another
+  allowance; viewing sessions persist server-side across devices.
 - The private test account and Access Pass are handed to the owner outside the
   repository. Never copy them into code, docs, screenshots, commits, logs, or
   competition text.
 - The production global cap is twenty analyses per UTC day.
 - Cloud Tasks concurrency is one, Cloud Run maximum instances is one, and each
-  project permits at most one paid Gloo candidate.
+  project permits at most three paid Gloo candidates.
 - Live provider probes spend quota. Do not rerun them merely to make evidence
   look newer.
 
@@ -69,7 +73,8 @@ audiovisual windows completed in about 84 seconds with an honest
 1. Check `git status` and ensure the local release matches public `master`.
 2. Open the public app signed out, then sign in with the private account without
    exposing its password on screen.
-3. Confirm the account allowance before spending a live run.
+3. Open “Pip - Small Steps, Steady Courage” from My Videos. It is reset to 0:00
+   for recording and has verified reflections waiting at 2:00 and 3:20.
 4. Record and upload the public demo, then replace the video placeholder in the
    competition writeup.
 5. Attach the executed Kaggle notebook and public links.

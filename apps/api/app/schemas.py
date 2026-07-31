@@ -103,6 +103,7 @@ class SourceRecord(BaseModel):
     kind: SourceKind
     storage_path: str | None = None
     public_url: str | None = None
+    youtube_video_id: str | None = None
     source_hash: str | None = None
     title: str
     duration_seconds: float | None = None
@@ -271,6 +272,13 @@ class ViewingSession(BaseModel):
     contiguous_frontier_seconds: float = 0
     story_complete: bool = False
     ended_naturally: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
+class ProjectLibraryItem(BaseModel):
+    project: Project
+    latest_session: ViewingSession | None = None
 
 
 class PublicProjectResponse(BaseModel):

@@ -29,7 +29,9 @@ PASSAGE_VERIFICATION_SYSTEM = (
     "You verify a proposed STILL reflection. Respect the canonical text exactly. Return ACCEPT only when the connection "
     "is grounded, proportionate, compassionate, non-forced, and does not overstate authorial intent or assign a severe "
     "moral label to ordinary behavior. Reject lexical or visual wordplay without a shared human meaning. Reject any fit "
-    "whose explanation must disclaim that the observed person is not actually doing what the passage condemns."
+    "whose explanation must disclaim that the observed person is not actually doing what the passage condemns. When "
+    "you accept, write the rationale as a calm two- or three-sentence explanation for the viewer: name the shared human "
+    "tension, explain how the canonical passage meets it, and avoid provider jargon, certainty about inner motives, or a sermon tone."
 )
 
 

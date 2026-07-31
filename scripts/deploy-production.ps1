@@ -67,9 +67,14 @@ function Sync-SecretValue {
     if ($secretExists) {
       & gcloud secrets versions access latest --secret=$Name --project=$ProjectId --out-file=$existingPath *> $null
       if ($LASTEXITCODE -eq 0) {
-        $desiredBytes = [System.IO.File]::ReadAllBytes($stagingPath)
-        $existingBytes = [System.IO.File]::ReadAllBytes($existingPath)
-        $needsVersion = -not [System.Security.Cryptography.CryptographicOperations]::FixedTimeEquals($desiredBytes, $existingBytes)
+        $hasher = [System.Security.Cryptography.SHA256]::Create()
+        try {
+          $desiredHash = [System.Convert]::ToBase64String($hasher.ComputeHash([System.IO.File]::ReadAllBytes($stagingPath)))
+          $existingHash = [System.Convert]::ToBase64String($hasher.ComputeHash([System.IO.File]::ReadAllBytes($existingPath)))
+          $needsVersion = $desiredHash -ne $existingHash
+        } finally {
+          $hasher.Dispose()
+        }
       }
     }
     if ($needsVersion) {
@@ -139,8 +144,16 @@ try {
     if (-not (Test-GcloudResource iam service-accounts describe "$($account.Name)@$ProjectId.iam.gserviceaccount.com" --project $ProjectId --format='value(email)')) { Invoke-Gcloud iam service-accounts create $account.Name --project $ProjectId --display-name=$account.Display --quiet }
   }
 
+  $authRole = 'stillFirebaseUserManager'
+  if (-not (Test-GcloudResource iam roles describe $authRole --project $ProjectId --format='value(name)')) {
+    Invoke-Gcloud iam roles create $authRole --project $ProjectId --title='STILL Firebase user manager' --description='Read authentication status and delete a user after an authenticated account-deletion request.' --permissions='firebaseauth.users.get,firebaseauth.users.delete' --stage=GA --quiet
+  } else {
+    Invoke-Gcloud iam roles update $authRole --project $ProjectId --permissions='firebaseauth.users.get,firebaseauth.users.delete' --stage=GA --quiet
+  }
+
   Invoke-Gcloud projects add-iam-policy-binding $ProjectId --member="serviceAccount:$runtimeAccount" --role=roles/datastore.user --condition=None --quiet
   Invoke-Gcloud projects add-iam-policy-binding $ProjectId --member="serviceAccount:$runtimeAccount" --role=roles/cloudtasks.enqueuer --condition=None --quiet
+  Invoke-Gcloud projects add-iam-policy-binding $ProjectId --member="serviceAccount:$runtimeAccount" --role="projects/$ProjectId/roles/$authRole" --condition=None --quiet
   Invoke-Gcloud iam service-accounts add-iam-policy-binding $invokerAccount --project $ProjectId --member="serviceAccount:$runtimeAccount" --role=roles/iam.serviceAccountUser --quiet
 
   $buildAccount = (& gcloud builds get-default-service-account --project $ProjectId).Trim()
@@ -182,9 +195,9 @@ try {
     APP_MODE = 'production'; USE_PROVIDER_FIXTURES = 'false'; LOCAL_WORKER_ENABLED = 'false'
     GOOGLE_CLOUD_PROJECT = $ProjectId; FIREBASE_PROJECT_ID = $ProjectId; GOOGLE_CLOUD_LOCATION = $Region
     CLOUD_TASKS_QUEUE = $Queue; WORKER_BASE_URL = 'https://pending.invalid'; WORKER_INVOKER_SERVICE_ACCOUNT = $invokerAccount
-    CORS_ORIGINS = "[`"$hostingOrigin`"]"; GLOO_ENDPOINT_MODE = 'completions_v2'; GLOO_MAX_CANDIDATES_PER_PROJECT = '1'
+    CORS_ORIGINS = "[`"$hostingOrigin`"]"; GLOO_ENDPOINT_MODE = 'completions_v2'; GLOO_MAX_CANDIDATES_PER_PROJECT = '3'
     YVP_ALLOWED_BIBLE_IDS = '[3034]'; MAX_VIDEO_DURATION_SECONDS = '360'; FREE_ANALYSIS_LIFETIME_LIMIT = '1'
-    ACCESS_ANALYSIS_DAILY_LIMIT = '2'; MAX_ANALYSIS_GLOBAL_PER_DAY = '20'; DAILY_ESCALATION_BUDGET = '0'
+    ACCESS_ANALYSIS_DAILY_LIMIT = '10'; MAX_ANALYSIS_GLOBAL_PER_DAY = '20'; DAILY_ESCALATION_BUDGET = '0'
   }
   $environmentPath = Join-Path $repoRoot 'tmp/runtime-environment.json'
   [System.IO.File]::WriteAllText($environmentPath, ($environmentValues | ConvertTo-Json -Compress), [System.Text.UTF8Encoding]::new($false))

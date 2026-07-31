@@ -1,73 +1,76 @@
 # STILL demo script - target 2:50
 
-Use the deployed product and the entrant-selected 5:58 test URL. Sign in with
-the privately supplied Access account before recording; never show the password,
-Access code, private handoff file, cloud consoles, or hidden tabs. Use a clearly
-labelled time compression while the real worker runs. Do not edit application
-state or fabricate a reflection.
+Use the deployed product and the saved **Pip - Small Steps, Steady Courage**
+project. It is reset to 0:00 for recording. Sign in with the privately supplied
+Access account before capture; never show the password, Access code, private
+handoff file, cloud consoles, or hidden tabs.
 
-## 0:00-0:18 - Cold open
+Record one genuine continuous watch of Pip. In the final edit, compress the
+waiting portions and label the time compression clearly. Do not seek forward:
+the watched-frontier rule is part of the product proof.
 
-**Picture:** Open on STILL's hero: "Let the story land before it speaks back."
-Move briefly through Plans to the signed-in account allowance.
+## 0:00-0:18 - The promise
 
-**Voice:** "Most AI rushes to explain. STILL waits. It is a spoiler-safe
-reflection layer that lets a story arrive before Scripture speaks into it."
+**Picture:** Open on the live landing page: “Watch the story. Meet Scripture at
+the right moment.” Briefly show the public URL.
 
-## 0:18-0:48 - Submit a real story
+**Voice:** “STILL is spoiler-safe Scripture reflection for video. It watches a
+story in order and never reveals a reflection before the scene that grounds it.”
 
-**Picture:** Paste the test URL and submit it. Show the authoritative 5:58
-duration and the real queued state.
+## 0:18-0:38 - Real saved analysis
 
-**Voice:** "This is the live product, not a prepared demo. It accepts supported
-public or unlisted YouTube stories up to six minutes. The server verifies the
-source and reserves the account allowance before paid analysis begins."
+**Picture:** Open My Videos and select Pip. Optionally paste the same Pip URL on
+Analyze first to show that the stored project reopens without spending another
+allowance.
 
-## 0:48-1:20 - Real processing
+**Voice:** “This is the real hosted product, not a canned response. Gemini
+completed seven audiovisual windows for this four-minute story. The analysis is
+saved privately and the same source is never paid for twice on this account.”
 
-**Picture:** Show chronological progress for the first windows, then use an
-on-screen label such as "84 seconds later" to reach the completed 9/9 result.
+## 0:38-1:15 - The timed unlock
 
-**Voice:** "Gemini watches bounded audiovisual windows in order. Gloo decides
-whether a reflection is timely, including the freedom to remain silent.
-YouVersion is the only source for canonical Scripture. Jobs are durable, and a
-provider failure is shown rather than replaced with fake output."
+**Picture:** Start Pip at 0:00. Show that no reflection is available. Use a
+clearly labelled time-compressed edit of the continuous watch. At 2:00, capture
+the first card appearing automatically; at 3:20, capture the second card.
 
-## 1:20-2:02 - Honest result and spoiler firewall
+**Voice:** “The video stays primary. A server-saved watched frontier controls
+what may appear. At two minutes, Hebrews 12:1 unlocks. At three minutes twenty,
+Hebrews 13:16 unlocks. Seeking ahead does not create watched coverage.”
 
-**Picture:** Show the terminal `READY_NO_ECHO` result from the test source, then
-open a previously accepted project for the watch experience if one is available
-in the same private account. At 0:00, open Reflections so far and show that
-future material is locked. Do not seek to simulate watched coverage.
+## 1:15-1:55 - Open the moat
 
-**Voice:** "For this source, STILL completed every window and chose silence.
-That is success: it will not force a verse onto a story. When an Echo is
-supported, the viewer's contiguous watched frontier controls when it can
-appear. Seeking ahead does not count."
+**Picture:** Open the 3:20 card. Show the scene evidence, exact BSB passage,
+Public Domain attribution, and Why It Connects explanation. Briefly open the
+2:00 card as well.
 
-## 2:02-2:30 - Story Complete
+**Voice:** “Each card begins with the observed moment. Gloo decides whether a
+Scripture connection is proportionate. YouVersion supplies the exact canonical
+text, version, and attribution. The viewer chooses when to pause and go deeper.”
 
-**Picture:** If an accepted project is available, show its genuinely completed
-watch state and exact passage version and attribution. Otherwise show the UI
-contract without claiming that the test source produced an Echo.
+## 1:55-2:22 - Complete story and honest silence
 
-**Voice:** "Only contiguous watching and a natural ending unlock the whole-story
-arc. Every rendered passage comes from YouVersion with its version and
-attribution."
+**Picture:** Let the genuine watch reach the natural ending, then open Review
+All Reflections and show both passages together. Briefly return to My Videos
+and point to the saved 5:58 `READY_NO_ECHO` project.
 
-## 2:30-2:50 - Close
+**Voice:** “A natural ending plus continuous coverage unlocks full-story review.
+And when no connection is responsible, STILL remains quiet—the other real test
+completed nine windows and correctly produced no Scripture.”
 
-**Picture:** Quick montage of add, progress, quiet watch, and account allowance.
-Finish on the STILL wordmark and public URLs.
+## 2:22-2:50 - Close
 
-**Voice:** "STILL is for testimonies, short films, youth groups, and every story
-that deserves presence before commentary. Watch first. Reflect later."
+**Picture:** Quick montage of My Videos, the two timed cards, and the landing
+promise. Finish on the STILL wordmark and public app/code URLs.
+
+**Voice:** “STILL is for testimonies, short films, youth groups, and every story
+that deserves Scripture with context and timing. Watch first. Reflect at the
+right moment.”
 
 ## Capture checklist
 
-- 1080p landscape, readable browser zoom, and large cursor.
+- 1080p landscape, readable browser zoom, and a large cursor.
 - Final public video no longer than 3:00.
-- Clearly label any time compression or cut.
-- Show the real public URL and real processing result.
+- Keep the raw continuous Pip watch as evidence; label every compressed segment.
+- Show the real public URL and never claim that a cached result is a new run.
 - Never expose secrets, email inboxes, passwords, Access codes, private
   filenames, account consoles, raw provider payloads, or hidden browser tabs.

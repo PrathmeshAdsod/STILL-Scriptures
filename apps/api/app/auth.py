@@ -22,7 +22,7 @@ async def current_user(request: Request, authorization: str | None = Header(defa
             firebase_admin.get_app()
         except ValueError:
             firebase_admin.initialize_app(options={"projectId": settings.firebase_project_id})
-        token = await asyncio.to_thread(firebase_admin.auth.verify_id_token, authorization.removeprefix("Bearer "))
+        token = await asyncio.to_thread(firebase_admin.auth.verify_id_token, authorization.removeprefix("Bearer "), check_revoked=True)
         provider = (token.get("firebase") or {}).get("sign_in_provider")
         if provider == "anonymous" or not token.get("email"):
             raise api_error(ErrorCode.AUTH_REQUIRED, "Sign in with an email account to continue.", 401)

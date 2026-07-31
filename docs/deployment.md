@@ -9,7 +9,9 @@ and the YouTube Data API.
 
 The deployed app requires verified Firebase email/password authentication for
 processing. It does not use anonymous authentication, publish private access
-credentials, or simulate results.
+credentials, or simulate results. Authenticated users receive an owner-scoped
+My Videos library; results and viewing sessions persist in Firestore, and an
+already analyzed YouTube ID reopens without reserving another allowance.
 
 ## Releasing
 
@@ -49,15 +51,21 @@ configuration or the web client changed.
   metadata, and more than one Gloo candidate.
 - Firebase email-enumeration protection is enabled and the enforced password
   policy requires at least 12 characters.
+- Account deletion removes owned application data and the Firebase
+  Authentication user. The runtime service account has only the additional
+  `firebaseauth.users.get` and `firebaseauth.users.delete` permissions needed
+  for that lifecycle operation.
 
 ## Plans and hard limits
 
 - Free: one analysis for the lifetime of a verified account.
-- Access Pass: two analyses per UTC day.
+- Access Pass: ten analyses per UTC day during final testing; the release
+  owner will reduce this to two for judge access.
 - Every video: authoritative duration of 6:00 or less.
 - Entire service: twenty analysis reservations per UTC day.
 - One Cloud Tasks dispatch at a time and one Cloud Run instance at most.
-- At most one Gloo candidate per project; escalation budget is zero.
+- At most three temporally distinct Gloo candidates per project; escalation
+  budget is zero.
 
 The API creates atomic Firestore reservations before queueing work. Repeated or
 concurrent requests therefore cannot race past an account or global limit.
@@ -72,9 +80,17 @@ audiovisual windows in about 84 seconds and reached `READY_NO_ECHO`. That
 conservative outcome proves arbitrary-source processing without inventing a
 Scripture connection.
 
+The final demonstration source, Dogs Inc's 4:05 “Pip,” then completed 7/7
+windows through the same hosted account and worker. Four grounded candidates
+across 2:00, 2:40, and 3:20 produced two verified BSB reflections: Hebrews 12:1
+at 2:00 and Hebrews 13:16 at 3:20. Production QA proved zero reflections at
+0:00, one after 2:00, both after 3:20, and both on Story Complete.
+
 Production browser QA also passed landing, Plans, account creation/sign-in
-flows, private Access Pass state, protected routes, responsive layout, and a
-zero-error console check. The deployed API health endpoint returns `ok`, an
+flows, private Access Pass state, saved-library reopening, duplicate-link reuse,
+protected routes, responsive layout, and a zero-error console check. A
+disposable verified account proved end-to-end deletion and old-token rejection.
+The deployed API health endpoint returns `ok`, an
 unauthenticated account request returns HTTP 401, the task queue is running
 with max concurrency 1, and the current Cloud Run service serves 100% of
 traffic with max instances 1.

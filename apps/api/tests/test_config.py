@@ -22,9 +22,11 @@ def test_production_requires_authoritative_youtube_validation() -> None:
         Settings(app_mode="production", youtube_api_key=None, gloo_max_candidates_per_project=1, access_coupon_code="TEST-ACCESS-CODE")
 
 
-def test_production_refuses_more_than_one_gloo_candidate() -> None:
+def test_production_allows_three_but_refuses_more_gloo_candidates() -> None:
+    settings = Settings(app_mode="production", youtube_api_key="restricted-key", gloo_max_candidates_per_project=3, access_coupon_code="TEST-ACCESS-CODE")
+    assert settings.gloo_max_candidates_per_project == 3
     with pytest.raises(ValidationError):
-        Settings(app_mode="production", youtube_api_key="restricted-key", gloo_max_candidates_per_project=2, access_coupon_code="TEST-ACCESS-CODE")
+        Settings(app_mode="production", youtube_api_key="restricted-key", gloo_max_candidates_per_project=4, access_coupon_code="TEST-ACCESS-CODE")
 
 
 def test_production_requires_private_access_code() -> None:
