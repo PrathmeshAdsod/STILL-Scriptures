@@ -41,6 +41,8 @@ class CausalAnalysisWorker:
             validate_source(project.source)
             if project.source.duration_seconds is None:
                 raise ProviderFailure(FailureClass.INPUT_INCOMPATIBLE, "Source duration has not been verified yet.")
+            if project.source.duration_seconds > self.router.settings.max_video_duration_seconds:
+                raise ProviderFailure(FailureClass.INPUT_INCOMPATIBLE, "The source exceeds this deployment's protected duration limit.")
             job.status = "RUNNING"
             project.status = ProjectStatus.PREPARING
             project.progress.stage = "preparing_media"

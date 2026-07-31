@@ -58,6 +58,8 @@ class ModelUsageBudgetLedger:
     def is_available(self, model_id: str, *, project_id: str, is_escalation: bool, escalation_budget: int, estimated_tokens: int = 0, project_token_budget: int = 300_000) -> bool:
         policy = self.policies[model_id]
         now = time.monotonic()
+        if estimated_tokens > policy.tpm:
+            return None
         if self.circuit_open_until.get(model_id, 0) > now:
             return False
         recent = self.requests[model_id]
@@ -77,6 +79,32 @@ class ModelUsageBudgetLedger:
         if is_escalation and self.escalation_by_project[(project_id, self._today())] >= escalation_budget:
             return False
         return True
+
+    def availability_delay(self, model_id: str, *, project_id: str, is_escalation: bool, escalation_budget: int, estimated_tokens: int = 0, project_token_budget: int = 300_000) -> float | None:
+        """Return a bounded local cooldown, or None when waiting cannot restore capacity."""
+        policy = self.policies[model_id]
+        now = time.monotonic()
+        if self.daily_requests[(model_id, self._today())] >= policy.rpd:
+            return None
+        if self.project_estimated_tokens[(project_id, self._today())] + estimated_tokens > project_token_budget:
+            return None
+        if is_escalation and self.escalation_by_project[(project_id, self._today())] >= escalation_budget:
+            return None
+        delays = [max(0.0, self.circuit_open_until.get(model_id, 0) - now)]
+        recent = self.requests[model_id]
+        while recent and recent[0] < now - 60:
+            recent.popleft()
+        if len(recent) >= policy.rpm:
+            delays.append(max(0.0, recent[0] + 60 - now))
+        recent_tokens = self.token_events[model_id]
+        while recent_tokens and recent_tokens[0][0] < now - 60:
+            recent_tokens.popleft()
+        if sum(tokens for _, tokens in recent_tokens) + estimated_tokens > policy.tpm:
+            delays.append(max(0.0, recent_tokens[0][0] + 60 - now) if recent_tokens else 60.0)
+        if self.in_flight[model_id] >= policy.max_concurrent_calls:
+            delays.append(1.0)
+        delay = max(delays)
+        return delay if delay > 0 else 0.0
 
     def reserve(self, model_id: str, *, project_id: str, is_escalation: bool, estimated_tokens: int = 0, is_retry: bool = False) -> None:
         self.requests[model_id].append(time.monotonic())
@@ -162,11 +190,37 @@ class VideoModelRouter:
     async def execute_with_failover(self, *, decision_input: dict, invoke) -> tuple[RouteDecision, object]:
         attempted: set[str] = set()
         last_error: ProviderFailure | None = None
-        for _ in range(3):
+        waited_for_local_capacity = False
+        # One extra iteration allows a local cooldown without reducing the
+        # original maximum of three distinct model-route attempts.
+        for _ in range(4):
             try:
                 decision = self.decide(**decision_input, exclude_models=attempted)
             except ProviderFailure as error:
-                raise last_error or error
+                if last_error:
+                    raise last_error
+                delays: list[float] = []
+                for policy in self.policies:
+                    if policy.provider not in self.providers or policy.model_id in attempted:
+                        continue
+                    if (decision_input["requires_audio"] and not policy.requires_audio) or (decision_input["requires_visual"] and not policy.requires_visual):
+                        continue
+                    delay = self.ledger.availability_delay(
+                        policy.model_id,
+                        project_id=decision_input["project_id"],
+                        is_escalation=policy.role == "escalation",
+                        escalation_budget=decision_input.get("escalation_budget", 2),
+                        estimated_tokens=decision_input.get("estimated_tokens", 12_000),
+                        project_token_budget=decision_input.get("project_token_budget", 300_000),
+                    )
+                    if delay is not None:
+                        delays.append(delay)
+                cooldown = min(delays) if delays else None
+                if not waited_for_local_capacity and cooldown is not None and 0 < cooldown <= 65:
+                    waited_for_local_capacity = True
+                    await __import__("asyncio").sleep(cooldown + 0.1)
+                    continue
+                raise error
             attempted.add(decision.policy.model_id)
             escalation = decision.policy.role == "escalation"
             for retry in range(decision.policy.max_retries + 1):

@@ -1,60 +1,93 @@
 # Deployment
 
-## Required services
+## Current public state
 
-- Firebase Authentication, Firestore, Storage, and Hosting.
-- Artifact Registry, Cloud Run, Cloud Tasks, and a service account for task OIDC.
-- Gemini, Gloo, and YouVersion credentials stored in Secret Manager or equivalent runtime secrets.
+Firebase Hosting serves <https://still-scriptures.web.app>. Anonymous Auth and
+read-only Firestore access provide the source-bound prepared demo. Provider
+credentials are absent from the browser.
 
-Enable the chosen Firebase Authentication provider. The Spark judge deployment
-uses passwordless Anonymous Auth so judges do not need an account. A future
-multi-user production deployment may use Google sign-in behind the owned API.
+The arbitrary public-YouTube backend is implemented but not yet deployed. The
+project is still on Spark with no Cloud Billing account linked. Firebase's
+official pricing documentation requires Blaze for Cloud Run and Cloud
+Functions production services, even when use remains within a no-cost quota.
 
-## Current Spark judge deployment
+## Owner action required once
 
-- Firebase Hosting serves the React application at
-  <https://still-scriptures.web.app>.
-- Anonymous Authentication is enabled.
-- Firestore contains one sanitized `prepared_demos` record produced only after
-  a real accepted pipeline run.
-- Rules allow authenticated document `get`, deny collection listing, and deny
-  all browser writes.
-- The ignored `apps/web/.env.production.local` contains Firebase's public web
-  SDK configuration. Provider credentials remain only in the ignored root
-  `.env` and are never compiled into the browser.
-- Cloud Run, Cloud Tasks, and Firebase Storage are not deployed on Spark.
+Open the Firebase project billing page and upgrade `still-scriptures` from
+Spark to Blaze by linking a Cloud Billing account. Do not paste payment details
+into a chat or terminal. After the console shows Blaze, run:
 
-## Cloud Run
+```powershell
+.\scripts\deploy-production.ps1
+```
 
-1. Build `apps/api/Dockerfile` from the repository root.
-2. Deploy the API private (`--no-allow-unauthenticated`).
-3. Create a dedicated Cloud Tasks invoker service account, set it as `WORKER_INVOKER_SERVICE_ACCOUNT`, and grant it `roles/run.invoker` on the API service.
-4. Give the API service account minimum Firestore, Storage, Task enqueue, and secret access roles.
-5. Inject `APP_MODE=production`, `USE_PROVIDER_FIXTURES=false`, and `LOCAL_WORKER_ENABLED=false`.
+The script checks billing before provisioning anything. It is idempotent and
+performs the following guarded release:
 
-`scripts/deploy-cloud-run.ps1` accepts the non-secret deployment values explicitly, including the Cloud Run runtime service account, Firebase Storage bucket, worker URL, and the Cloud Tasks OIDC invoker service account. It deliberately does not put provider keys in a command line or source file; attach those as Cloud Run Secret Manager environment variables.
+1. enables Artifact Registry, Cloud Build, Cloud Run, Cloud Tasks, Secret
+   Manager, Firestore, and the YouTube Data API;
+2. creates narrow runtime and task identities;
+3. copies provider values from the ignored `.env` into Secret Manager without
+   printing them;
+4. attaches a separate API key restricted to `youtube.googleapis.com`;
+5. builds the FastAPI container with Cloud Build;
+6. deploys Cloud Run with min instances `0`, max instances `1`, concurrency
+   `20` so status polling remains responsive during the one active worker, and
+   an 1,800-second request timeout;
+7. creates a one-at-a-time Cloud Tasks queue with at most two attempts;
+8. builds the web client with `VITE_PUBLIC_SHOWCASE=false` and same-origin
+   `/api` calls;
+9. deploys the Firebase Hosting rewrite and Firestore rules/indexes; and
+10. performs a Cloud Run health check.
 
-## Gemini Cloud Storage source registration
+## Runtime security
 
-For a Firebase Storage upload, STILL does not send a browser URL or re-upload the video for every causal window. The worker registers the `gs://` object once with Gemini Files API, persists the returned opaque Gemini file URI on the project, and reuses that URI with the requested start/end offsets.
+Cloud Run permits network access because the browser must reach the owned API,
+but that does not make application data anonymous:
 
-Before a live run, grant the runtime service account read access to the source bucket and grant the Gemini service agent `Storage Object Viewer` on that bucket. The runtime must also have Application Default Credentials available. Validate this with the Milestone 1B source-reuse check; do not substitute a public URL or an unregistered `gs://` URI if registration fails.
+- every `/api` route verifies a Firebase ID token and project ownership;
+- `/internal/jobs/{jobId}` requires both a Cloud Tasks header and a verified
+  Google OIDC token whose audience and service-account email match the runtime
+  configuration;
+- browser Firestore writes remain denied;
+- Gemini, Gloo, YouVersion, and YouTube metadata keys are mounted from Secret
+  Manager, never compiled into Vite; and
+- production refuses fixtures, a local worker, more than one Gloo candidate,
+  or missing authoritative YouTube metadata credentials.
 
-## Cloud Tasks
+## Cost and abuse controls
 
-Create a queue named by `CLOUD_TASKS_QUEUE`. Tasks target `POST /internal/jobs/{jobId}` with OIDC. Cloud Run IAM rejects public callers; the application additionally rejects missing task headers in production.
+The competition release accepts only public or unlisted, embeddable YouTube
+videos with an authoritative duration of 6:00 or less. It enforces:
 
-The runtime service account needs narrow roles for Firestore, the configured Firebase Storage bucket, Cloud Tasks enqueue, and secret access. The Cloud Tasks invoker service account needs only `roles/run.invoker` on this service.
+- two real analyses per anonymous Firebase user per UTC day;
+- twenty real analyses globally per UTC day;
+- an atomic Firestore reservation before a job is queued;
+- at most one paid Gloo candidate per project;
+- zero escalation-model allowance in the deployment configuration;
+- Cloud Run scale-to-zero with at most one instance; and
+- one Cloud Tasks dispatch at a time.
 
-## Hosting
+The YouTube `videos.list` metadata check costs one YouTube API quota unit and
+does not call Gemini or Gloo. Google Cloud budget alerts are still recommended,
+but alerts do not cap charges. The application limits above are the hard usage
+controls.
 
-For the prepared judge path, build with `VITE_PUBLIC_SHOWCASE=true` and the
-Firebase client variables, then deploy `apps/web/dist`. For a future open
-submission backend, also set `VITE_API_BASE_URL` to the owned API domain.
+## Acceptance after deployment
 
-## Pre-deploy checks
+Do not call the release complete after a successful build alone. Through the
+public Hosting URL, verify:
 
-Run all local checks, compile/validate rules with Firebase tooling, build the
-web artifact, and only then run the real acceptance gates. The Firebase CLI and
-gcloud are now available and were used to deploy Hosting and Firestore rules.
-The Cloud Run Docker path remains intentionally undeployed.
+1. a fresh anonymous guest can paste the entrant-selected 5:58 URL;
+2. the server reports the authoritative duration and queues exactly one job;
+3. Firestore progress reaches 9/9 windows and a terminal `READY` or
+   `READY_NO_ECHO` state;
+4. YouTube playback loads and seeking does not advance the contiguous frontier;
+5. Story Complete requires natural ending plus contiguous coverage;
+6. any rendered Scripture contains exact YouVersion text, version, and
+   attribution; and
+7. the prepared sample remains available from the fallback link.
+
+The already completed local application-worker acceptance for that URL ended
+`READY_NO_ECHO` with 9/9 `FULL_AUDIOVISUAL` windows in about 82 seconds. The
+public deployment must still repeat the complete browser path.

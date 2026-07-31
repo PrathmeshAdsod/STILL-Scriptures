@@ -7,10 +7,10 @@ from fastapi import Depends, FastAPI, Header, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .auth import current_user
+from .auth import current_user, require_cloud_task
 from .config import Settings, get_settings
 from .errors import ErrorCode, api_error, not_found
-from .repositories import FirestoreDataStore, InMemoryDataStore
+from .repositories import AnalysisReservationResult, FirestoreDataStore, InMemoryDataStore
 from .routing import ModelUsageBudgetLedger, VideoModelRouter, load_model_policies
 from .schemas import (
     AnalysisJob,
@@ -32,6 +32,7 @@ from .tasks import CloudTasksEnqueuer, LocalTaskEnqueuer
 from .media import delete_uploaded_source, validate_upload_storage_path
 from .watching import contiguous_frontier, normalise_ranges, qualifies_for_story_complete
 from .worker import CausalAnalysisWorker
+from .youtube import YoutubeMetadataClient
 from .providers import GeminiVideoProvider, GlooSacredTimingProvider, NvidiaVideoProvider, YouVersionClient
 
 
@@ -51,6 +52,7 @@ async def lifespan(app: FastAPI):
     app.state.store = store
     app.state.worker = worker
     app.state.enqueuer = CloudTasksEnqueuer(settings) if settings.app_mode == "production" else LocalTaskEnqueuer(worker, settings.local_worker_enabled)
+    app.state.youtube = YoutubeMetadataClient(settings)
     yield
 
 
@@ -101,7 +103,13 @@ async def set_youtube_source(project_id: UUID, payload: YoutubeSourceRequest, re
     project = await owned_project(request, project_id, user_id)
     if project.status not in {ProjectStatus.DRAFT, ProjectStatus.SOURCE_PENDING, ProjectStatus.FAILED_RETRIABLE, ProjectStatus.FAILED}:
         raise api_error(ErrorCode.INVALID_STATE, "This project source can no longer be changed.", 409)
-    project.source = SourceRecord(kind=SourceKind.YOUTUBE, public_url=str(payload.url), title=payload.title or project.title, duration_seconds=payload.duration_seconds)
+    metadata = await request.app.state.youtube.inspect(str(payload.url), payload.duration_seconds)
+    project.source = SourceRecord(
+        kind=SourceKind.YOUTUBE,
+        public_url=f"https://www.youtube.com/watch?v={metadata.video_id}",
+        title=payload.title or metadata.title,
+        duration_seconds=metadata.duration_seconds,
+    )
     project.status = ProjectStatus.SOURCE_PENDING
     await store_for(request).put_project(project)
     return project
@@ -148,6 +156,17 @@ async def start_analysis(project_id: UUID, request: Request, idempotency_key: st
         raise api_error(ErrorCode.INVALID_STATE, "This project has already completed analysis.", 409)
     if project.status in {ProjectStatus.QUEUED, ProjectStatus.PREPARING, ProjectStatus.ANALYZING, ProjectStatus.GROUNDING}:
         raise api_error(ErrorCode.INVALID_STATE, "Analysis is already in progress for this project.", 409)
+    settings: Settings = request.app.state.settings
+    reservation = await store_for(request).reserve_analysis(
+        owner_id=user_id,
+        project_id=project.id,
+        per_user_limit=settings.max_analysis_per_user_per_day,
+        global_limit=settings.max_analysis_global_per_day,
+    )
+    if reservation == AnalysisReservationResult.USER_LIMIT_REACHED:
+        raise api_error(ErrorCode.USAGE_LIMIT_REACHED, "This guest session has used today's real-analysis allowance. The verified sample remains available.", 429)
+    if reservation == AnalysisReservationResult.GLOBAL_LIMIT_REACHED:
+        raise api_error(ErrorCode.USAGE_LIMIT_REACHED, "Today's protected live-analysis budget is full. The verified sample remains available.", 429)
     job = AnalysisJob(project_id=project.id, owner_id=user_id, idempotency_key=idempotency_key)
     project.current_job_id = job.id
     project.status = ProjectStatus.QUEUED
@@ -170,9 +189,8 @@ async def start_analysis(project_id: UUID, request: Request, idempotency_key: st
 
 
 @app.post("/internal/jobs/{job_id}", status_code=status.HTTP_202_ACCEPTED)
-async def execute_task(job_id: UUID, request: Request, x_cloudtasks_taskname: str | None = Header(default=None)) -> dict:
-    if request.app.state.settings.app_mode == "production" and not x_cloudtasks_taskname:
-        raise api_error(ErrorCode.FORBIDDEN, "This endpoint only accepts Cloud Tasks requests.", 403)
+async def execute_task(job_id: UUID, request: Request, authorization: str | None = Header(default=None), x_cloudtasks_taskname: str | None = Header(default=None)) -> dict:
+    await require_cloud_task(request, authorization, x_cloudtasks_taskname)
     await request.app.state.worker.run(job_id)
     return {"accepted": True}
 

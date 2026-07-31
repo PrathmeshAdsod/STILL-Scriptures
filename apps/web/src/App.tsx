@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from './lib/api';
 import { clientConfig, firebaseConfigured } from './lib/config';
-import { inspectVideo, inspectYoutube, sha256, youtubeId } from './lib/source';
-import { observeFirebaseUser, signInToStill, uploadVideo } from './lib/firebase';
+import { inspectYoutube, youtubeId } from './lib/source';
+import { observeFirebaseUser, signInToStill } from './lib/firebase';
 import { loadPreparedDemo, parsePreparedDemo, visibleDemoEchoes } from './lib/preparedDemo';
 import { Html5PlaybackAdapter } from './playback/Html5PlaybackAdapter';
 import type { PlaybackAdapter } from './playback/PlaybackAdapter';
@@ -10,7 +10,7 @@ import { YouTubePlaybackAdapter } from './playback/YouTubePlaybackAdapter';
 import { WatchedRangeTracker, contiguousFrontier } from './playback/WatchedRangeTracker';
 import type { Echo, PreparedDemo, Project, ViewingSession } from './types';
 
-type Route = { page: 'home' | 'add' | 'processing' | 'watch' | 'reflect'; projectId?: string };
+type Route = { page: 'home' | 'add' | 'demo' | 'processing' | 'watch' | 'reflect'; projectId?: string };
 const sourceKey = (id: string) => `still:playback-source:${id}`;
 const sessionKey = (id: string) => `still:session:${id}`;
 const preparedDemoKey = (id: string) => `still:prepared-demo:${id}`;
@@ -36,7 +36,7 @@ function savePreparedSession(session: ViewingSession): void {
 
 function parseRoute(): Route {
   const [page = 'home', projectId] = location.hash.replace(/^#\/?/, '').split('/');
-  return ['add', 'processing', 'watch', 'reflect'].includes(page) ? { page: page as Route['page'], projectId } : { page: 'home' };
+  return ['add', 'demo', 'processing', 'watch', 'reflect'].includes(page) ? { page: page as Route['page'], projectId } : { page: 'home' };
 }
 function go(path: string) { location.hash = path; }
 function showHowItWorks() {
@@ -55,6 +55,7 @@ function Mark() { return <span className="brand-mark" aria-hidden="true"><i /><i
 function Header({ quiet = false }: { quiet?: boolean }) {
   const [signedIn, setSignedIn] = useState(false);
   const [authError, setAuthError] = useState<string>();
+  const localMode = clientConfig.appMode !== 'production' && !firebaseConfigured;
   useEffect(() => observeFirebaseUser((user) => setSignedIn(Boolean(user))), []);
   async function handleAccount() {
     if (signedIn) return;
@@ -64,7 +65,7 @@ function Header({ quiet = false }: { quiet?: boolean }) {
   return <header className={`site-header ${quiet ? 'quiet' : ''}`}>
     <button className="wordmark" onClick={() => go('/')} aria-label="STILL home"><Mark />STILL</button>
     <nav aria-label="Primary navigation"><button onClick={() => go('/add')}>{clientConfig.publicShowcase ? 'Judge demo' : 'Add story'}</button><button onClick={showHowItWorks}>How it works</button></nav>
-    <button className="account-button" aria-label={signedIn ? 'Firebase guest session ready' : 'Start Firebase guest session'} onClick={handleAccount}><span>◌</span><b>{clientConfig.publicShowcase ? signedIn ? 'Guest ready' : 'Guest access' : signedIn ? 'Account' : 'Sign in'}</b></button>
+    <button className="account-button" aria-label={localMode ? 'Local development mode' : signedIn ? 'Firebase guest session ready' : 'Start Firebase guest session'} onClick={handleAccount} disabled={localMode}><span>◌</span><b>{localMode ? 'Local mode' : signedIn ? 'Guest ready' : 'Guest access'}</b></button>
     {authError && <p className="auth-error" role="alert">{authError}</p>}
   </header>;
 }
@@ -129,42 +130,33 @@ function JudgeDemoAccess() {
 }
 
 function AddStory() {
-  const [sourceType, setSourceType] = useState<'upload' | 'youtube'>('upload');
   const [title, setTitle] = useState('');
-  const [file, setFile] = useState<File>();
   const [youtube, setYoutube] = useState('');
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState<number>();
   const [error, setError] = useState<string>();
-  const canSubmit = Boolean(title.trim() && (sourceType === 'upload' ? file : youtube));
+  const canSubmit = Boolean(title.trim() && youtube.trim());
   if (clientConfig.publicShowcase) return <JudgeDemoAccess />;
   async function submit(event: FormEvent) {
     event.preventDefault(); if (!canSubmit) return;
     setBusy(true); setError(undefined);
     try {
+      const metadata = await inspectYoutube(youtube);
+      if (metadata.duration > 360) throw new Error('Choose a public YouTube video no longer than 6 minutes for this live demo.');
       const created = await api.createProject(title.trim());
-      if (sourceType === 'upload' && file) {
-        const [media, hash] = await Promise.all([inspectVideo(file), sha256(file)]);
-        const uploaded = await uploadVideo(file, created.project_id, setProgress);
-        sessionStorage.setItem(sourceKey(created.project_id), uploaded.playbackUrl);
-        await api.completeUpload(created.project_id, { storage_path: uploaded.storagePath, original_filename: file.name, content_type: file.type, size_bytes: file.size, sha256: hash, duration_seconds: media.duration, has_video: media.hasVideo });
-      } else if (sourceType === 'youtube') {
-        const metadata = await inspectYoutube(youtube);
-        await api.setYoutubeSource(created.project_id, youtube, title.trim(), metadata.duration);
-      }
+      await api.setYoutubeSource(created.project_id, youtube, title.trim(), metadata.duration);
       await api.startAnalysis(created.project_id);
       go(`/processing/${created.project_id}`);
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'This story could not be added.'); } finally { setBusy(false); }
   }
-  return <main className="app-shell"><Header quiet /><section className="source-page"><div className="source-intro"><p className="eyebrow blue">NEW STORY</p><h1>Give the story<br />its first quiet room.</h1><p>Upload a video you own or choose a public YouTube story. STILL prepares it once, then stays out of the way.</p><div className="source-notes"><span>◌ Your video stays private to your project.</span><span>◌ Processing can continue after you leave.</span><span>◌ No reflection is created from title alone.</span></div></div><form className="source-form" onSubmit={submit}>
-      <div className="source-tabs" role="tablist"><button type="button" className={sourceType === 'upload' ? 'selected' : ''} onClick={() => setSourceType('upload')}>Upload a video</button><button type="button" className={sourceType === 'youtube' ? 'selected' : ''} onClick={() => setSourceType('youtube')}>Public YouTube URL</button></div>
+  return <main className="app-shell"><Header quiet /><section className="source-page"><div className="source-intro"><p className="eyebrow blue">LIVE STORY ANALYSIS</p><h1>Give a new story<br />its first quiet room.</h1><p>Paste a public YouTube story up to six minutes. STILL validates the real source, follows it in bounded windows, and may remain quiet when no reflection fits.</p><div className="source-notes"><span>◌ Real Gemini audiovisual analysis—not a canned response.</span><span>◌ At most one paid Gloo candidate per story.</span><span>◌ Exact Scripture is retrieved from YouVersion only after acceptance.</span></div></div><form className="source-form" onSubmit={submit}>
+      <p className="eyebrow blue">ANALYZE A NEW VIDEO</p>
       <label>Story title<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A name you will recognise" maxLength={180} required /></label>
-      {sourceType === 'upload' ? <label className="file-drop"><input type="file" accept="video/mp4,video/webm,video/quicktime,video/mpeg" onChange={(e) => { const selected = e.target.files?.[0]; setFile(selected); if (selected && !title) setTitle(selected.name.replace(/\.[^/.]+$/, '')); }} required /><span className="upload-glyph">↑</span><strong>{file?.name ?? 'Choose a video file'}</strong><small>{file ? `${Math.round(file.size / 1024 / 1024)} MB` : 'MP4, WebM, MOV, MPEG'}</small></label> : <label>Public YouTube link<input value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" inputMode="url" required /><small>STILL validates public playback before processing. It never downloads YouTube video.</small></label>}
-      {progress !== undefined && <div className="upload-progress"><i style={{ transform: `scaleX(${progress})` }} /><span>Uploading {Math.round(progress * 100)}%</span></div>}
-      {!firebaseConfigured && sourceType === 'upload' && <p className="form-warning">Firebase Storage is not configured in this environment, so upload remains unavailable rather than simulated.</p>}
+      <label>Public YouTube link<input value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" inputMode="url" required /><small>Public or unlisted, embeddable, with a fixed duration of 6:00 or less.</small></label>
+      {clientConfig.appMode === 'production' && !firebaseConfigured && <p className="form-error" role="alert">Firebase guest authentication is not configured. No local fixture will be substituted.</p>}
       {error && <p role="alert" className="form-error">{error}</p>}
-      <button className="primary-action wide" disabled={!canSubmit || busy}>{busy ? 'Preparing your story…' : 'Prepare this story'} <b>→</b></button>
-      <p className="form-fineprint">By continuing, you confirm you own the video or have the right to use it.</p>
+      <button className="primary-action wide" disabled={(clientConfig.appMode === 'production' && !firebaseConfigured) || !canSubmit || busy}>{busy ? 'Validating and queueing…' : 'Analyze this real video'} <b>→</b></button>
+      <button type="button" className="text-link showcase-fallback" onClick={() => go('/demo')}>Or open the provider-verified sample <b>↗</b></button>
+      <p className="form-fineprint">Protected demo allowance: two real analyses per guest per day, twenty total per day. By continuing, you confirm you may use the linked video.</p>
     </form></section></main>;
 }
 
@@ -177,7 +169,7 @@ function Processing({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project>();
   const [error, setError] = useState<string>();
   const [retrying, setRetrying] = useState(false);
-  useEffect(() => { let active = true; const poll = async () => { try { const status = await api.getStatus(projectId); if (active) { setProject(status); setError(undefined); } } catch (caught) { if (active) setError(caught instanceof Error ? caught.message : 'Unable to read project status.'); } }; void poll(); const timer = window.setInterval(() => void poll(), 3500); return () => { active = false; clearInterval(timer); }; }, [projectId]);
+  useEffect(() => { let active = true; let timer: number | undefined; const poll = async () => { try { const status = await api.getStatus(projectId); if (!active) return; setProject(status); setError(undefined); if (!['READY', 'READY_NO_ECHO', 'FAILED', 'FAILED_RETRIABLE', 'CANCELLED'].includes(status.status)) timer = window.setTimeout(() => void poll(), 3500); } catch (caught) { if (active) { setError(caught instanceof Error ? caught.message : 'Unable to read project status.'); timer = window.setTimeout(() => void poll(), 7000); } } }; void poll(); return () => { active = false; if (timer) clearTimeout(timer); }; }, [projectId]);
   const [heading, detail] = project ? stageCopy(project) : ['Finding your story.', 'Connecting to its preparation state.'];
   const percentage = project?.progress.total_windows ? Math.round((project.progress.completed_windows / project.progress.total_windows) * 100) : undefined;
   async function retry() { setRetrying(true); setError(undefined); try { await api.startAnalysis(projectId); } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to retry analysis.'); } finally { setRetrying(false); } }
@@ -314,4 +306,4 @@ function Reflect({ projectId }: { projectId: string }) {
   return <main className="reflect-shell"><Header quiet />{project?.source?.prepared_demo && <p className="prepared-banner">PREPARED DEMO · EXACT YOUVERSION TEXT AND ATTRIBUTION</p>}<section className="reflect-intro"><p className="eyebrow blue">AFTER THE STORY</p><h1>{project?.title ?? 'Reflection'}</h1><p>These moments are grounded in the complete story you watched. Scripture is shown only when retrieved with its version and attribution.</p></section>{error && <p className="form-error reflect-error" role="alert">{error}</p>}{echoes?.length === 0 && <section className="no-echo"><p className="eyebrow">STILL REMAINED QUIET</p><h2>No Scripture Echo was forced into this story.</h2><p>That is a complete result, not a missing one.</p><button className="secondary-action" onClick={() => go(`/watch/${projectId}`)}>Return to story</button></section>}<section className="echo-list">{echoes?.map((echo, index) => <article className="full-echo" key={echo.id}><div className="echo-number">0{index + 1}</div><div><p className="timestamp">A moment at {formatTime(echo.knowledge_cutoff_seconds)}</p><h2>{echo.tension}</h2><p className="scene-context">{echo.scene_context}</p>{echo.exact_scripture_text && <figure><blockquote>{echo.exact_scripture_text}</blockquote><figcaption>{echo.scripture_reference} {echo.bible_version ? `· ${echo.bible_version}` : ''}</figcaption><small>{echo.copyright_attribution}</small></figure>}{echo.connection_explanation && <p className="connection">{echo.connection_explanation}</p>}</div></article>)}</section></main>;
 }
 
-export default function App() { const route = useRoute(); if (route.page === 'add') return <AddStory />; if (route.page === 'processing' && route.projectId) return <Processing key={route.projectId} projectId={route.projectId} />; if (route.page === 'watch' && route.projectId) return <Watch key={route.projectId} projectId={route.projectId} />; if (route.page === 'reflect' && route.projectId) return <Reflect key={route.projectId} projectId={route.projectId} />; return <Landing />; }
+export default function App() { const route = useRoute(); if (route.page === 'add') return <AddStory />; if (route.page === 'demo') return <JudgeDemoAccess />; if (route.page === 'processing' && route.projectId) return <Processing key={route.projectId} projectId={route.projectId} />; if (route.page === 'watch' && route.projectId) return <Watch key={route.projectId} projectId={route.projectId} />; if (route.page === 'reflect' && route.projectId) return <Reflect key={route.projectId} projectId={route.projectId} />; return <Landing />; }

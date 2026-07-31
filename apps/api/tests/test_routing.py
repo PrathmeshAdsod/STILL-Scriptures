@@ -30,3 +30,12 @@ def test_usage_ledger_honours_configured_concurrency() -> None:
     assert not ledger.is_available("gemini-concurrent", project_id="another", is_escalation=False, escalation_budget=0)
     ledger.release("gemini-concurrent")
     assert ledger.is_available("gemini-concurrent", project_id="another", is_escalation=False, escalation_budget=0)
+
+
+def test_usage_ledger_reports_a_recoverable_rpm_cooldown() -> None:
+    ledger = ModelUsageBudgetLedger([policy()])
+    ledger.reserve("gemini-test", project_id="project", is_escalation=False)
+    ledger.release("gemini-test")
+    delay = ledger.availability_delay("gemini-test", project_id="project", is_escalation=False, escalation_budget=0)
+    assert delay is not None
+    assert 0 < delay <= 60

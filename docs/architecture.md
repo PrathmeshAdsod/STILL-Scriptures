@@ -2,7 +2,7 @@
 
 ```mermaid
 flowchart TD
-  Source[Upload or public YouTube source] --> Validate[Source validation]
+  Source[Public or unlisted YouTube source] --> Validate[Authoritative metadata validation]
   Validate --> Job[Durable analysis job]
   Job --> Prepare[Prepare source once]
   Prepare --> W1[Bounded window N]
@@ -18,9 +18,9 @@ flowchart TD
 
 ## Trust boundaries
 
-- Browser clients access Firebase Storage under restrictive rules; the API owns workflow state.
+- Browser clients authenticate anonymously with Firebase; the API owns workflow state and project data.
 - Firebase Admin / Firestore / Cloud Tasks are server-side only.
-- Cloud Tasks invokes a private Cloud Run endpoint through OIDC and Cloud Run IAM.
+- Cloud Run accepts network traffic so Firebase Hosting can proxy `/api`, but every API route verifies a Firebase token and ownership. Cloud Tasks additionally requires a verified Google OIDC token with the configured audience and service-account email.
 - Only Gemini handles audiovisual video analysis. A missing or degraded modality produces abstention/degraded output, never a sensitive inference.
 - Gloo assesses whether a candidate deserves a reflection; it does not provide canonical Bible text.
 - YouVersion is the only origin for text rendered as Scripture.
@@ -42,4 +42,4 @@ NVIDIA is outside this reliable hierarchy. It is hidden behind the provider inte
 
 ## Data retention
 
-Projects, sources, windows, narrative-state snapshots, Echoes, and sessions are scoped by owner. Per-window provenance is retained without raw chain-of-thought. A future owned retention job must delete Firestore records and corresponding Storage objects together.
+Projects, sources, windows, narrative-state snapshots, Echoes, and sessions are scoped by owner. Per-window provenance is retained without raw chain-of-thought. The competition release embeds public YouTube sources and does not rehost their media. A future upload release must add an owned retention job that deletes Firestore records and corresponding Storage objects together.

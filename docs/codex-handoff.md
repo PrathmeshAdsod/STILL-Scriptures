@@ -30,15 +30,15 @@ have passed. See `docs/real-e2e-acceptance.md`.
 
 | Area | Status |
 | --- | --- |
-| Web UI and playback firewall | Implemented; tests, lint, typecheck, and production build pass |
-| FastAPI API and worker | 17 tests pass; real 9-window and 5-window `NO_ECHO` runs plus accepted seven-window runs completed |
+| Web UI and playback firewall | Implemented; tests, lint, typecheck, production build, and local browser form inspection pass |
+| FastAPI API and worker | 25 tests pass; the entrant's 5:58 URL completed 9/9 full audiovisual windows in the actual worker and ended `READY_NO_ECHO`; accepted seven-window runs also completed |
 | Gemini | Accepted source completed seven audiovisual windows using `gemini-3.5-flash-lite` and conservative fallback `gemini-3.1-flash-lite` |
 | Gloo | Abstention and acceptance passed; prepared runs cap candidates at one; final passage verification passed |
 | YouVersion | Bible 3034 returned exact 1 Corinthians 1:27, BSB, and copyright metadata |
 | Firebase | Anonymous Auth, Firestore prepared record/rules, and Hosting deployed at <https://still-scriptures.web.app> |
-| Tasks / Cloud Run / Storage | Not deployed; open arbitrary-source processing remains local |
+| Tasks / Cloud Run | Secured arbitrary-YouTube release and deployment automation implemented; deployment blocked only by unlinked Blaze billing |
 | NVIDIA | Disabled and untested |
-| GitHub | Publication is the next release step; GitHub CLI is absent |
+| GitHub | Public `master` currently contains the prepared-demo release; the arbitrary-source hardening changes still need the next commit and push |
 
 The judge source is Dogs Inc's 4:05 public release of “Pip.” STILL embeds the
 original; copyright remains with its owners. The public code is
@@ -50,8 +50,10 @@ original; copyright remains with its owners. The public code is
   commit, screenshot, or copy those values into commands, docs, or provider
   payload evidence.
 - The Windows ACL on `.env` is restricted to the current user.
-- Gloo is pay-as-you-go. The judge runner hard-caps candidates at one. The
-  accepted demo is already persisted; do not rerun providers merely to test UI.
+- Gloo is pay-as-you-go. Every production project hard-caps candidates at one;
+  the protected release also limits each guest to two analyses and the whole
+  app to twenty per day. Current weekly spend remains $0.01 / $5.00 after the
+  latest bounded acceptance.
 - Production rejects `USE_PROVIDER_FIXTURES=true`.
 - The public prepared demo contains no provider credentials and disables open
   submission instead of simulating a backend.
@@ -65,13 +67,15 @@ original; copyright remains with its owners. The public code is
 
 ## Immediate resume order
 
-1. Run all offline checks and secret scan before publication.
-2. Commit and push the intended repository to
-   <https://github.com/PrathmeshAdsod/STILL-Scriptures> on `master`, as explicitly
-   requested by the entrant.
-3. Record and upload a public YouTube demo no longer than three minutes.
-4. Publish/attach the executed Kaggle notebook and create the Kaggle writeup.
-5. Preview all links signed out, then ask the entrant before the irreversible
+1. Ask the owner to link Blaze billing in the Firebase console; never handle or
+   request payment details in chat.
+2. Run `scripts/deploy-production.ps1`, then complete the public arbitrary-URL
+   browser acceptance in `docs/deployment.md`.
+3. Commit and push the verified release to
+   <https://github.com/PrathmeshAdsod/STILL-Scriptures> on `master`.
+4. Record and upload a public YouTube demo no longer than three minutes.
+5. Publish/attach the executed Kaggle notebook and create the Kaggle writeup.
+6. Preview all links signed out, then ask the entrant before the irreversible
    final Kaggle Submit action.
 
 ## Verification commands
@@ -95,6 +99,7 @@ notebook, and demo are public, Kaggle assets are attached, and the entrant has
 approved the final submission. Until a real accepted Echo and public interactive
 backend exist, describe the current result as:
 
-> Real bounded pipeline accepted one verified, canonical Echo; a source-bound
-> Firebase judge demo is publicly interactive; arbitrary-source cloud
-> processing remains intentionally undeployed on Spark.
+> Real bounded pipelines produced both an accepted canonical Echo and honest
+> NO_ECHO results; a source-bound Firebase judge demo is public; arbitrary
+> public-YouTube cloud processing is implemented but awaits Blaze deployment
+> and public browser acceptance.

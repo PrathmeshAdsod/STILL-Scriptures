@@ -35,7 +35,11 @@ class Settings(BaseSettings):
     cloud_tasks_queue: str | None = None
     worker_base_url: str | None = None
     worker_invoker_service_account: str | None = None
+    max_video_duration_seconds: int = Field(default=360, ge=30, le=1_800)
+    max_analysis_per_user_per_day: int = Field(default=2, ge=1, le=20)
+    max_analysis_global_per_day: int = Field(default=20, ge=1, le=500)
     gemini_api_key: str | None = None
+    youtube_api_key: str | None = None
     gemini_primary_model: str = "gemini-3.5-flash-lite"
     gemini_fallback_model: str = "gemini-3.1-flash-lite"
     gemini_escalation_model: str = "gemini-3.5-flash"
@@ -47,7 +51,7 @@ class Settings(BaseSettings):
     gloo_client_secret: str | None = None
     gloo_base_url: str = "https://platform.ai.gloo.com"
     gloo_endpoint_mode: Literal["responses", "completions_v2", "unselected"] = "unselected"
-    gloo_max_candidates_per_project: int = Field(default=2, ge=1, le=10)
+    gloo_max_candidates_per_project: int = Field(default=1, ge=1, le=10)
     # Omit tradition by default to use Gloo's general Christian perspective.
     # Completions V2 does not allow `not_faith_specific` with auto-routing.
     gloo_tradition: Literal["evangelical", "catholic", "mainline"] | None = None
@@ -66,6 +70,10 @@ class Settings(BaseSettings):
             raise ValueError("Production refuses to start when USE_PROVIDER_FIXTURES=true.")
         if self.app_mode == "production" and self.local_worker_enabled:
             raise ValueError("Production requires Cloud Tasks; LOCAL_WORKER_ENABLED must be false.")
+        if self.app_mode == "production" and self.gloo_max_candidates_per_project != 1:
+            raise ValueError("Competition production permits exactly one paid Gloo candidate per project.")
+        if self.app_mode == "production" and not self.youtube_api_key:
+            raise ValueError("Production requires YOUTUBE_API_KEY for authoritative source validation.")
         return self
 
     def integration_status(self, credential_present: bool) -> IntegrationStatus:

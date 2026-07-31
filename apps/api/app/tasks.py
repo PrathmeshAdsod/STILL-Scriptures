@@ -36,11 +36,15 @@ class CloudTasksEnqueuer:
 
         client = tasks_v2.CloudTasksClient()
         parent = client.queue_path(self.settings.google_cloud_project, self.settings.google_cloud_location, self.settings.cloud_tasks_queue)
+        audience = self.settings.worker_base_url.rstrip("/")
         task = {
             "http_request": {
                 "http_method": tasks_v2.HttpMethod.POST,
-                "url": f"{self.settings.worker_base_url.rstrip('/')}/internal/jobs/{job_id}",
-                "oidc_token": {"service_account_email": self.settings.worker_invoker_service_account},
+                "url": f"{audience}/internal/jobs/{job_id}",
+                "oidc_token": {
+                    "service_account_email": self.settings.worker_invoker_service_account,
+                    "audience": audience,
+                },
             }
         }
         client.create_task(parent=parent, task=task)

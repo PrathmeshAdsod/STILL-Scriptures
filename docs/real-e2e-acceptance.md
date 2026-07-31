@@ -23,17 +23,20 @@ Evidence status: **technical pipeline passed; source-rights caveat recorded**
 (2026-08-01).
 
 - Real public source validation passed for a 5:58 entrant-selected YouTube URL.
-- Gemini completed two inspected audiovisual windows and a resumable 9-window
-  local pipeline run with immutable chronological state.
+- Gemini completed two inspected audiovisual windows and a 9-window local
+  application-worker run with immutable chronological state.
 - One paid Gloo required-tool call returned `NO_ECHO` with confidence 1.0. This
   is a valid safe result for the sensitive source, not a persisted Scripture
   Echo.
 - YouVersion Bible 3034 independently returned an exact canonical passage,
   version metadata, and copyright attribution.
-- The first 9-window attempt reached the local RPM budget at 8/9; a retry
-  resumed and completed without reprocessing accepted work.
+- A fresh application-worker acceptance on 2026-08-01 first exposed a local
+  RPM defect at 8/9. After the router was changed to wait for the exact local
+  cooldown, a bounded rerun completed 9/9 `FULL_AUDIOVISUAL` windows in 82
+  seconds and ended `READY_NO_ECHO`. The ephemeral acceptance harness did not
+  preserve the first run, so this evidence does not claim persisted resume.
 
-Those observations remain valid evidence of abstention and resume behavior.
+Those observations remain valid evidence of abstention and bounded cooldown behavior.
 Afterward, Dogs Inc's public release, “Pip,”
 completed seven real bounded audiovisual windows. Gloo accepted one capped
 candidate, YouVersion returned exact 1 Corinthians 1:27 in BSB with copyright
@@ -53,8 +56,8 @@ Repeat the flow through the public deployed application. Verify:
 4. Story Complete gating;
 5. intentional reflection displaying exact YouVersion Scripture.
 
-Evidence status: **prepared-demo interaction passed; open submission backend is
-out of scope on Spark**.
+Evidence status: **prepared-demo interaction passed; arbitrary submission
+deployment awaits the owner-controlled Blaze switch**.
 
 Firebase Hosting is live at <https://still-scriptures.web.app> on Spark. A fresh
 anonymous Firebase session successfully retrieved the exact hashed prepared
@@ -73,4 +76,6 @@ The 0:00/0:40 before-and-after frontier behavior was browser-verified on the
 same schema before the final record replacement; the final Pip record was then
 verified fresh at 0:00 with zero Echoes. This validates the public prepared-demo journey, not open `add → process` for an
 arbitrary new source. Cloud Run, Cloud Tasks, and Firebase Storage remain
-undeployed because the project is intentionally kept on Spark.
+undeployed because the owner has not yet linked Blaze billing. The secured
+public-YouTube backend and guarded deployment script are implemented, but this
+gate remains open until deployment and a fresh browser acceptance pass.

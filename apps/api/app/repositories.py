@@ -2,10 +2,17 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Protocol
 from uuid import UUID
 
 from .schemas import AnalysisJob, Echo, NarrativeState, Project, ReflectionCandidate, ViewingSession, WindowProvenance
+
+
+class AnalysisReservationResult(StrEnum):
+    RESERVED = "RESERVED"
+    USER_LIMIT_REACHED = "USER_LIMIT_REACHED"
+    GLOBAL_LIMIT_REACHED = "GLOBAL_LIMIT_REACHED"
 
 
 class DataStore(Protocol):
@@ -24,6 +31,7 @@ class DataStore(Protocol):
     async def echoes(self, project_id: UUID) -> list[Echo]: ...
     async def put_session(self, session: ViewingSession) -> None: ...
     async def get_session(self, session_id: UUID) -> ViewingSession | None: ...
+    async def reserve_analysis(self, *, owner_id: str, project_id: UUID, per_user_limit: int, global_limit: int) -> AnalysisReservationResult: ...
     async def delete_project(self, project_id: UUID) -> None: ...
 
 
@@ -39,6 +47,7 @@ class InMemoryDataStore:
         self.candidate_records: dict[UUID, list[ReflectionCandidate]] = defaultdict(list)
         self.echo_records: dict[UUID, list[Echo]] = defaultdict(list)
         self.sessions: dict[UUID, ViewingSession] = {}
+        self.analysis_usage: dict[str, dict[str, object]] = {}
 
     async def put_project(self, project: Project) -> None:
         project.updated_at = datetime.now(UTC)
@@ -104,6 +113,24 @@ class InMemoryDataStore:
     async def get_session(self, session_id: UUID) -> ViewingSession | None:
         return self.sessions.get(session_id)
 
+    async def reserve_analysis(self, *, owner_id: str, project_id: UUID, per_user_limit: int, global_limit: int) -> AnalysisReservationResult:
+        day = datetime.now(UTC).date().isoformat()
+        usage = self.analysis_usage.setdefault(day, {"total": 0, "users": {}})
+        users = usage["users"]
+        assert isinstance(users, dict)
+        user_projects = users.setdefault(owner_id, set())
+        assert isinstance(user_projects, set)
+        if project_id in user_projects:
+            return AnalysisReservationResult.RESERVED
+        if len(user_projects) >= per_user_limit:
+            return AnalysisReservationResult.USER_LIMIT_REACHED
+        total = int(usage["total"])
+        if total >= global_limit:
+            return AnalysisReservationResult.GLOBAL_LIMIT_REACHED
+        user_projects.add(project_id)
+        usage["total"] = total + 1
+        return AnalysisReservationResult.RESERVED
+
     async def delete_project(self, project_id: UUID) -> None:
         self.projects.pop(project_id, None)
         self.states.pop(project_id, None)
@@ -129,6 +156,7 @@ class FirestoreDataStore:
         self.projects = self.client.collection("projects")
         self.jobs = self.client.collection("analysisJobs")
         self.sessions = self.client.collection("viewingSessions")
+        self.analysis_usage = self.client.collection("analysisUsage")
 
     @staticmethod
     def _doc(model: object) -> dict:
@@ -196,6 +224,34 @@ class FirestoreDataStore:
     async def get_session(self, session_id: UUID) -> ViewingSession | None:
         snapshot = await self.sessions.document(str(session_id)).get()
         return ViewingSession.model_validate(snapshot.to_dict()) if snapshot.exists else None
+
+    async def reserve_analysis(self, *, owner_id: str, project_id: UUID, per_user_limit: int, global_limit: int) -> AnalysisReservationResult:
+        from google.cloud import firestore_v1
+
+        day = datetime.now(UTC).date().isoformat()
+        usage_ref = self.analysis_usage.document(day)
+        user_ref = usage_ref.collection("users").document(owner_id)
+
+        @firestore_v1.async_transactional
+        async def reserve(transaction):
+            usage_snapshot = await usage_ref.get(transaction=transaction)
+            user_snapshot = await user_ref.get(transaction=transaction)
+            usage_payload = usage_snapshot.to_dict() or {}
+            user_payload = user_snapshot.to_dict() or {}
+            projects = list(user_payload.get("project_ids", []))
+            project_key = str(project_id)
+            if project_key in projects:
+                return AnalysisReservationResult.RESERVED
+            if len(projects) >= per_user_limit:
+                return AnalysisReservationResult.USER_LIMIT_REACHED
+            total = int(usage_payload.get("total", 0))
+            if total >= global_limit:
+                return AnalysisReservationResult.GLOBAL_LIMIT_REACHED
+            transaction.set(usage_ref, {"total": total + 1, "updated_at": datetime.now(UTC)}, merge=True)
+            transaction.set(user_ref, {"project_ids": [*projects, project_key], "updated_at": datetime.now(UTC)}, merge=True)
+            return AnalysisReservationResult.RESERVED
+
+        return await reserve(self.client.transaction())
 
     async def delete_project(self, project_id: UUID) -> None:
         project_doc = self.projects.document(str(project_id))

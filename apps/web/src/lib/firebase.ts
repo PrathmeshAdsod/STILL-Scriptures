@@ -1,5 +1,5 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
-import { GoogleAuthProvider, getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, type User } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, signInAnonymously, type User } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { clientConfig, firebaseConfigured } from './config';
@@ -14,7 +14,7 @@ export const firebaseStorage = firebaseApp ? getStorage(firebaseApp) : undefined
 
 export async function getIdToken(): Promise<string | undefined> {
   if (!firebaseAuth) return undefined;
-  if (!firebaseAuth.currentUser && (clientConfig.appMode === 'development' || clientConfig.publicShowcase)) await signInAnonymously(firebaseAuth);
+  if (!firebaseAuth.currentUser) await signInAnonymously(firebaseAuth);
   return firebaseAuth.currentUser?.getIdToken();
 }
 
@@ -29,11 +29,7 @@ export function observeFirebaseUser(listener: (user: User | null) => void): () =
 export async function signInToStill(): Promise<void> {
   if (!firebaseAuth) throw new Error('Firebase Authentication is not configured in this environment.');
   if (firebaseAuth.currentUser) return;
-  if (clientConfig.appMode === 'development' || clientConfig.publicShowcase) {
-    await signInAnonymously(firebaseAuth);
-    return;
-  }
-  await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+  await signInAnonymously(firebaseAuth);
 }
 
 export async function signInJudgeAnonymously(): Promise<void> {

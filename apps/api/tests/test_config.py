@@ -17,6 +17,16 @@ def test_production_refuses_local_worker() -> None:
         Settings(app_mode="production", local_worker_enabled=True)
 
 
+def test_production_requires_authoritative_youtube_validation() -> None:
+    with pytest.raises(ValidationError):
+        Settings(app_mode="production", youtube_api_key=None, gloo_max_candidates_per_project=1)
+
+
+def test_production_refuses_more_than_one_gloo_candidate() -> None:
+    with pytest.raises(ValidationError):
+        Settings(app_mode="production", youtube_api_key="restricted-key", gloo_max_candidates_per_project=2)
+
+
 def test_missing_gemini_credentials_fail_transparently() -> None:
     with pytest.raises(ProviderFailure) as error:
         GeminiVideoProvider(Settings(gemini_api_key=None))._client()
