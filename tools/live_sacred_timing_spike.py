@@ -16,7 +16,7 @@ from app.config import Settings  # noqa: E402
 from app.providers.base import PreparedSource, VideoAnalysisRequest  # noqa: E402
 from app.providers.gemini import GeminiVideoProvider  # noqa: E402
 from app.providers.gloo import GlooSacredTimingProvider  # noqa: E402
-from app.schemas import NarrativeState, SourceKind, SourceRecord  # noqa: E402
+from app.schemas import AnalysisOutcome, NarrativeState, SourceKind, SourceRecord  # noqa: E402
 
 
 async def main() -> int:
@@ -45,15 +45,19 @@ async def main() -> int:
             start_offset_seconds=0,
             end_offset_seconds=args.end,
             narrative_state=NarrativeState(version=0),
-            prompt_version="bounded-audiovisual-observation-v1",
+            prompt_version="bounded-audiovisual-observation-v2",
             purpose="sacred_timing_capability_spike",
         ),
     )
-    if not analysis.observations:
-        print(json.dumps({"status": "FAILED_CAPABILITY_TEST", "reason": "Gemini returned no observation."}))
+    eligible = [
+        item for item in analysis.observations
+        if item.outcome == AnalysisOutcome.ACCEPT and item.candidate_tensions
+    ]
+    if not eligible:
+        print(json.dumps({"status": "NO_GLOO_CALL", "reason": "Gemini returned no eligible ACCEPT candidate."}))
         return 1
 
-    observation = max(analysis.observations, key=lambda item: item.confidence)
+    observation = max(eligible, key=lambda item: item.confidence)
     decision = await gloo.decide(
         observation=observation,
         video_context=f"Only presentation time 0-{args.end:.1f} seconds is known. No future scene is available.",

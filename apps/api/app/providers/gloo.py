@@ -13,6 +13,26 @@ from ..schemas import AnalysisOutcome, Echo, WindowObservation
 from .base import FailureClass, ProviderFailure
 
 
+SACRED_TIMING_SYSTEM = (
+    "You make Sacred Timing decisions for STILL. Accept only when the audiovisual observation provides specific, "
+    "non-sensitive evidence and the proposed Scripture connection would be proportionate, compassionate, and useful "
+    "without shaming the people depicted. Reject superficial wordplay or image matching, such as choosing a passage "
+    "about moral darkness merely because a room becomes dark. Never equate ordinary leisure, disability, grief, "
+    "confusion, or reluctance with evil, sin, guilt, or condemnation. If a connection would need a disclaimer that the "
+    "person is not actually doing what the passage condemns, it is forced and must not be accepted. Prefer NO_ECHO, "
+    "HOLD, ABSTAIN, NEEDS_MORE_CONTEXT, SAFETY_SENSITIVE, or REJECT_ALL_SCRIPTURE whenever the fit is uncertain. "
+    "Never write Bible text. For ACCEPT, provide a human reference, a USFM passage ID, and only an ID from "
+    "allowed_bible_ids."
+)
+
+PASSAGE_VERIFICATION_SYSTEM = (
+    "You verify a proposed STILL reflection. Respect the canonical text exactly. Return ACCEPT only when the connection "
+    "is grounded, proportionate, compassionate, non-forced, and does not overstate authorial intent or assign a severe "
+    "moral label to ordinary behavior. Reject lexical or visual wordplay without a shared human meaning. Reject any fit "
+    "whose explanation must disclaim that the observed person is not actually doing what the passage condemns."
+)
+
+
 @dataclass(frozen=True)
 class SacredTimingDecision:
     outcome: AnalysisOutcome
@@ -74,12 +94,7 @@ class GlooSacredTimingProvider:
             },
         }
         result, metadata = await self._call_tool(
-            system=(
-                "You make Sacred Timing decisions for STILL. You may accept a reflection only when the audiovisual "
-                "observation provides sufficient, non-sensitive evidence and Scripture is not forced. Prefer NO_ECHO, "
-                "HOLD, ABSTAIN, NEEDS_MORE_CONTEXT, SAFETY_SENSITIVE, or REJECT_ALL_SCRIPTURE. Never write Bible text. "
-                "For ACCEPT, provide a human reference, a USFM passage ID, and only an ID from allowed_bible_ids."
-            ),
+            system=SACRED_TIMING_SYSTEM,
             user_payload={
                 "observation": observation.model_dump(mode="json"),
                 "presentation_context": video_context,
@@ -121,7 +136,7 @@ class GlooSacredTimingProvider:
             },
         }
         result, metadata = await self._call_tool(
-            system="You verify a proposed STILL reflection. Respect the canonical text exactly; return ACCEPT only when the connection is grounded, non-forced, and does not overstate authorial intent.",
+            system=PASSAGE_VERIFICATION_SYSTEM,
             user_payload={"tension": echo.tension, "scene_context": echo.scene_context, "reference": echo.scripture_reference, "canonical_text": canonical_text, "attribution": attribution},
             tool=tool_schema,
         )

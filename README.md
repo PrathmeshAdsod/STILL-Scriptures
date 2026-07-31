@@ -20,12 +20,12 @@ STILL is a spoiler-safe reflection layer for story-led video. It prepares a sour
 
 | Integration | Status | Why |
 | --- | --- | --- |
-| Gemini video understanding | `LIVE_VERIFIED_BOUNDED` | A credentialed public-YouTube run passed chronological 0-40 s and 40-80 s audiovisual windows, then completed all 9 windows of the selected 5:58 source. |
-| Gloo Sacred Timing | `LIVE_VERIFIED_DECISION` | One paid Completions V2 call returned a valid required-tool `NO_ECHO` decision. Production candidate calls are capped at two per project. |
-| YouVersion retrieval | `LIVE_VERIFIED_RETRIEVAL` | Bible 3034 returned an exact passage, version metadata, and copyright attribution through the real API. |
+| Gemini video understanding | `LIVE_VERIFIED_FULL_RUN` | Real bounded audiovisual analysis completed all seven chronological windows of the accepted 4:19 demo source, with a fallback route used under the conservative RPM ledger. |
+| Gloo Sacred Timing | `LIVE_VERIFIED_ACCEPT_AND_ABSTENTION` | Required-tool calls correctly returned `NO_ECHO` for two unsuitable projects and accepted one grounded candidate plus its final passage verification. Prepared-demo runs cap Gloo at one candidate. |
+| YouVersion retrieval | `LIVE_VERIFIED_CANONICAL_ECHO` | Bible 3034 returned exact 1 Corinthians 1:27 text, BSB version metadata, and copyright attribution for the persisted Echo. |
 | NVIDIA NIM | `BLOCKED_MISSING_CREDENTIALS` / disabled | Optional only; never required for release. |
-| Firebase Hosting | `DEPLOYED_STATIC_SHOWCASE` | The public Spark-tier showcase is live at [still-scriptures.web.app](https://still-scriptures.web.app); it intentionally exposes no provider-backed controls. |
-| Firestore / Cloud Tasks / Cloud Run | `NOT_DEPLOYED` | These services require billing for this architecture. The Firebase project remains on Spark, so the real backend is run locally for the demo. |
+| Firebase Auth / Firestore / Hosting | `DEPLOYED_PREPARED_DEMO` | [still-scriptures.web.app](https://still-scriptures.web.app) anonymously authenticates judges and retrieves one exact accepted provider result. Browser writes and collection listing are denied. |
+| Cloud Tasks / Cloud Run / Storage | `NOT_DEPLOYED` | The open submission backend remains local because these production services require billing. No provider key is present in the hosted client. |
 
 No newly submitted project becomes `READY` from fixtures, title analysis, captions-only analysis, static Echoes, or fabricated provider output. In production, startup rejects `USE_PROVIDER_FIXTURES=true`.
 
@@ -79,13 +79,20 @@ For resuming this project in another Codex account or on a configured laptop,
 start with the [Codex handoff](docs/codex-handoff.md). It records the current
 truthful status, safety rules, implementation map, and mandatory live gates.
 
-## Public showcase and deployment
+## Public judge demo
 
-The public, credential-free competition showcase is deployed at
-[still-scriptures.web.app](https://still-scriptures.web.app). It is deliberately
-static because the project remains on Firebase Spark; it never places Gemini,
-Gloo, or YouVersion credentials in browser code and does not simulate an
-interactive run. Use the local setup above for the real provider-backed flow.
+Open [still-scriptures.web.app](https://still-scriptures.web.app), choose
+**Judge demo**, and enter `STILL-JUDGE-2026`. No personal login is required:
+Firebase creates a temporary anonymous session and reads a single hashed demo
+record. The video is the original public YouTube embed. Watched coverage,
+spoiler filtering, the 3:20 Echo cutoff, Story Complete, and full reflection are
+interactive in the browser.
+
+The Echo was prepared by a real seven-window Gemini → Gloo → YouVersion → Gloo
+verification run and is bound to that exact source. This is a prepared demo,
+not a fixture and not an open processing backend. New sources still require the
+local backend setup above. The public client contains Firebase's normal public
+web configuration only; Gemini, Gloo, and YouVersion credentials remain local.
 
 For a future production backend, build the API from the repository root with
 `apps/api/Dockerfile`, deploy it as a private Cloud Run service, then configure
@@ -95,7 +102,7 @@ command; it does not provision resources or upload secrets.
 
 ## Non-negotiable acceptance gates
 
-1. **Milestone 5 staging:** a previously unseen rights-cleared source must pass real bounded Gemini audiovisual analysis, Gloo, YouVersion, verification, and Echo persistence. The selected test source completed as `READY_NO_ECHO`, so this gate is only partially satisfied.
-2. **Final deployed acceptance:** the same kind of real flow must pass through the public frontend including playback, spoiler-lock, watched frontier, Story Complete, and exact canonical Scripture. The Spark-hosted site is a static showcase, so this gate remains open.
+1. **Milestone 5 staging:** the technical pipeline gate passed on Dogs Inc's public release of “Pip”: seven real audiovisual windows, Gloo acceptance, YouVersion retrieval, Gloo verification, and Echo persistence. Copyright remains with the source owners; STILL embeds rather than rehosts it.
+2. **Final deployed acceptance:** the public prepared-demo path has passed anonymous Firebase retrieval, real YouTube playback, zero early Echoes, natural-ending Story Complete, and exact canonical rendering. The final Pip record is locked until its 3:20 watched frontier. It does not claim to be an open public processing backend.
 
 Mocks are permitted only in automated/local development tests. They can never satisfy either gate.

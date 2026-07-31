@@ -1,5 +1,5 @@
 from app.config import Settings
-from app.providers.gloo import GlooSacredTimingProvider
+from app.providers.gloo import GlooSacredTimingProvider, PASSAGE_VERIFICATION_SYSTEM, SACRED_TIMING_SYSTEM
 
 
 def _tool() -> dict:
@@ -31,3 +31,13 @@ def test_gloo_auto_routing_includes_supported_explicit_tradition() -> None:
     payload = provider._build_request_payload(system="system", user_payload={}, tool=_tool())
 
     assert payload["tradition"] == "evangelical"
+
+
+def test_sacred_timing_rejects_shaming_and_superficial_wordplay() -> None:
+    decision_policy = SACRED_TIMING_SYSTEM.lower()
+    verification_policy = PASSAGE_VERIFICATION_SYSTEM.lower()
+
+    assert "ordinary leisure" in decision_policy
+    assert "superficial wordplay" in decision_policy
+    assert "severe moral label" in verification_policy
+    assert "must disclaim" in verification_policy

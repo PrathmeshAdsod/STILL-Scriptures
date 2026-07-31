@@ -1,8 +1,11 @@
 # STILL demo script - target 2:45
 
-Use a real provider-backed project. Never record a fixture, manually edited
-state, static Echo, or simulated Scripture result. The final source should be
-60-120 seconds so the product journey fits inside three minutes.
+Use the deployed source-bound prepared project. It is not a fixture: it exists
+only because the exact source passed the real seven-window provider pipeline.
+Never edit session state, Echo content, or watched ranges for the recording.
+Because the source is 4:05, use an honest edit after showing the live frontier:
+complete the uninterrupted watch off-camera, then cut to its genuine natural
+ending and Story Complete state.
 
 ## 0:00-0:18 - Cold open
 
@@ -14,8 +17,8 @@ reflection layer that lets a story arrive before Scripture speaks into it."
 
 ## 0:18-0:42 - The promise
 
-**Picture:** Add the real YouTube source, show the rights confirmation, then the
-real processing screen advancing through bounded windows.
+**Picture:** Enter `STILL-JUDGE-2026`, show “Guest ready,” the read-only Firebase
+label, and the original Dogs Inc YouTube embed.
 
 **Voice:** "A title is not evidence, and a transcript is not the whole scene.
 STILL follows both picture and sound in order. If a provider fails, the product
@@ -34,9 +37,9 @@ comes only from YouVersion with its version and attribution."
 
 ## 1:12-1:54 - Spoiler firewall
 
-**Picture:** Begin First Watch. Open "Reflections so far" before the evidence
-frontier, continue watching normally, then open it after the frontier. Do not
-seek ahead.
+**Picture:** Begin First Watch and open “Reflections so far” at 0:00 (empty).
+Then use an honest edit to the same continuously watched session after its 3:20
+frontier and reopen it to reveal the source-bound Echo. Do not seek ahead.
 
 **Voice:** "The viewer's watched frontier is the boundary. Before I genuinely
 reach this moment, its reflection is inaccessible. Seeking ahead does not count.
@@ -44,10 +47,9 @@ After the scene lands, the grounded Echo can appear."
 
 ## 1:54-2:20 - Story Complete
 
-**Picture:** Let the short source end naturally. Show Story Complete and the
-exact Scripture reference, version, and attribution. If Gloo returns `NO_ECHO`,
-show that quiet result honestly and use a second previously verified project for
-the positive Scripture path.
+**Picture:** After an explicit edit, show the same session after its uninterrupted
+natural ending. Open Story Complete and show 1 Corinthians 1:27, BSB, exact text, and
+copyright attribution.
 
 **Voice:** "Only contiguous watching and a natural ending unlock the whole-story
 arc. And sometimes the right result is no verse at all. STILL never forces a

@@ -20,23 +20,24 @@ Story Complete.
 The technical design makes that promise enforceable:
 
 - **Gemini is the audiovisual observer.** It receives bounded, chronological
-  windows with exact offsets and append-only narrative state. A live 9-window
-  run completed on our selected source, including safe resume after an RPM
-  pause.
+  windows with exact offsets and append-only narrative state. The final public
+  demo completed seven live audiovisual windows with conservative fallback.
 - **Gloo provides Sacred Timing.** Required structured decisions can accept,
-  hold, abstain, reject, or remain silent. Our live paid probe returned
-  `NO_ECHO` for sensitive real-world footage - evidence that STILL does not
-  force a verse where silence is more faithful.
+  hold, abstain, reject, or remain silent. It returned `NO_ECHO` for unsuitable
+  footage, then accepted one proportionate Pip reflection and its final passage
+  verification. The v2 policy rejects shaming and superficial wordplay.
 - **YouVersion is the canonical Scripture source.** Only an exact API-retrieved,
   app-licensed passage with version and copyright metadata may be rendered as
-  Scripture. A live retrieval through Bible 3034 passed.
+  Scripture. The final Echo renders exact 1 Corinthians 1:27, BSB, with
+  attribution.
 
-The product is a React experience backed by FastAPI, with Firestore-compatible
-storage, resumable jobs, model budgets, and provenance for every bounded window.
-The public Firebase Spark site is intentionally a credential-free static
-showcase; the real provider flow runs locally in the demo and repository because
-the production server architecture requires billing. It never simulates a live
-backend or places provider keys in the browser.
+The React product is backed by FastAPI, resumable jobs, model budgets, and
+per-window provenance. The public Firebase Spark experience signs judges in
+anonymously and retrieves one exact source-bound result from read-only
+Firestore. It offers real YouTube playback, watched-frontier gating, Story
+Complete, and exact Scripture without putting provider keys in the browser.
+Open arbitrary-source processing remains local because Cloud Run would require
+billing; the hosted experience is labelled Prepared Demo, never a fake backend.
 
 STILL's immediate wedge is reflective short-form video: testimonies, short
 films, youth-group stories, and discussion-led media. Its broader vision is a
@@ -45,6 +46,6 @@ not outrun the viewer, and do not speak when silence is more faithful.
 
 **Demo:** [PUBLIC_YOUTUBE_DEMO_URL]
 
-**Public showcase:** <https://still-scriptures.web.app>
+**Public app:** <https://still-scriptures.web.app> — code `STILL-JUDGE-2026`
 
 **Code:** <https://github.com/PrathmeshAdsod/STILL-Scriptures>

@@ -1,8 +1,7 @@
 # Milestone 1B live verification
 
-Status: **bounded provider verification passed on 2026-08-01; full Echo
-acceptance remains open**. The entrant selected a public 5:58 YouTube source for
-testing. Its rights status was not independently verified.
+Status: **bounded verification and one full accepted Echo passed on
+2026-08-01**.
 
 ## Required inputs
 
@@ -38,6 +37,30 @@ testing. Its rights status was not independently verified.
   project.
 - YouVersion returned HTTP 200 for Bible 3034 and passage `JHN.3.16`, including
   canonical content, version metadata, and copyright attribution.
+
+## Accepted prepared-demo run
+
+- Dogs Inc's public release of “Pip” was inspected as a 245-second, public,
+  non-live, age-unrestricted YouTube source.
+- The free gate passed 0-40 s and 40-80 s with full audiovisual mode, audio and
+  visual evidence, append-only narrative versions, and an eligible candidate.
+- The durable worker completed seven chronological windows. The conservative
+  router used `gemini-3.5-flash-lite` and `gemini-3.1-flash-lite` without
+  reprocessing persisted windows.
+- The prepared-demo runner capped Gloo at one candidate. Gloo accepted the
+  candidate under the strengthened v2 proportionality policy, YouVersion Bible
+  3034 returned exact 1 Corinthians 1:27 in BSB with copyright attribution, and
+  Gloo accepted passage verification.
+- One Echo was persisted and a sanitized source-bound document was published
+  to Firestore. No provider credential or raw provider response was published.
+- Before this final success, “Mr Indifferent” completed five real windows and
+  one capped Gloo decision as `READY_NO_ECHO`; it was not published. “The
+  Present” technically passed but editorial QA rejected its disproportionate
+  light/dark connection, leading to the stricter v2 policy and replacement by
+  the final Pip record.
+
+Observed paid scope in this account work: four one-candidate decisions and two
+passage-verification calls total. No unbounded Gloo batch was run.
 
 No raw provider response, transcript, source media, account identifier, or
 credential is stored in this evidence. No tool in this repository creates a

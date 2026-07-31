@@ -11,12 +11,13 @@ signed-out link checks and Kaggle submission only.
 - [x] Local `.env` contains Gemini, Gloo, and YouVersion credentials and is
   ignored by Git.
 - [x] YouVersion Bible 3034 is confirmed through a live passage call.
-- [ ] A short rights-cleared demo source is confirmed. The current public 5:58
-  source was supplied by the entrant, but rights were not independently checked
-  and its real outcome is `NO_ECHO`.
+- [x] A public source from its producing nonprofit is confirmed. Dogs Inc
+  produced and published “Pip” on its own channel; STILL embeds the original and
+  records that copyright remains with its owners rather than claiming a
+  Creative Commons licence.
 - [x] Firebase Hosting is usable on the Spark project.
-- [ ] Firestore, Tasks, Run, and Storage are not deployed; the public site is a
-  clearly labeled static showcase.
+- [x] Anonymous Auth, read-only prepared-demo Firestore access, rules, and
+  Hosting are deployed on Spark. Tasks, Run, and Storage remain undeployed.
 - [x] Solo participation was confirmed by the entrant.
 
 ## Proof gates
@@ -28,13 +29,15 @@ signed-out link checks and Kaggle submission only.
 - [x] YouVersion returns an exact licensed passage plus version and copyright
   metadata.
 - [x] The local worker completes 9/9 windows and demonstrates resumable retry.
-- [ ] A real source produces an accepted, verified, persisted Scripture Echo.
-- [ ] Public UI passes the full add -> prepare -> watch -> frontier -> Story
-  Complete -> exact Scripture flow. Spark Hosting is static only.
+- [x] A real source produces an accepted, verified, persisted Scripture Echo.
+- [x] Public prepared UI passes code -> Firebase guest -> watch -> frontier ->
+  Story Complete -> exact Scripture. The final Pip record also passed a fresh
+  0:00 check with zero visible Echoes.
 
 ## Public package
 
-- [x] Firebase showcase opens publicly at <https://still-scriptures.web.app>.
+- [x] Firebase judge demo opens publicly at <https://still-scriptures.web.app>
+  with code `STILL-JUDGE-2026` and requires no personal login.
 - [x] Public GitHub repository is pushed and opens signed out.
 - [x] Local Kaggle notebook executes top-to-bottom and contains no credentials.
 - [ ] Notebook is attached publicly to the Kaggle writeup.
@@ -42,8 +45,8 @@ signed-out link checks and Kaggle submission only.
 - [x] `still-cover.png` is ready at Kaggle's 2:1 aspect ratio (1120 x 560).
 - [ ] Replace the demo placeholder in `kaggle-writeup.md`; final text remains
   under 500 words.
-- [x] Claims distinguish live provider checks, local E2E, static deployment,
-  and still-open gates.
+- [x] Claims distinguish live provider checks, the source-bound public demo,
+  and the intentionally undeployed open processing backend.
 
 ## Final Kaggle pass
 

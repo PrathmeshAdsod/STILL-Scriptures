@@ -6,7 +6,23 @@
 - Artifact Registry, Cloud Run, Cloud Tasks, and a service account for task OIDC.
 - Gemini, Gloo, and YouVersion credentials stored in Secret Manager or equivalent runtime secrets.
 
-Enable the chosen Firebase Authentication provider. The web client uses anonymous sign-in only in development; production uses Firebase Google sign-in and must have that provider enabled and the deployed domain authorized.
+Enable the chosen Firebase Authentication provider. The Spark judge deployment
+uses passwordless Anonymous Auth so judges do not need an account. A future
+multi-user production deployment may use Google sign-in behind the owned API.
+
+## Current Spark judge deployment
+
+- Firebase Hosting serves the React application at
+  <https://still-scriptures.web.app>.
+- Anonymous Authentication is enabled.
+- Firestore contains one sanitized `prepared_demos` record produced only after
+  a real accepted pipeline run.
+- Rules allow authenticated document `get`, deny collection listing, and deny
+  all browser writes.
+- The ignored `apps/web/.env.production.local` contains Firebase's public web
+  SDK configuration. Provider credentials remain only in the ignored root
+  `.env` and are never compiled into the browser.
+- Cloud Run, Cloud Tasks, and Firebase Storage are not deployed on Spark.
 
 ## Cloud Run
 
@@ -32,8 +48,13 @@ The runtime service account needs narrow roles for Firestore, the configured Fir
 
 ## Hosting
 
-Build the web app, set `VITE_API_BASE_URL` to the API gateway/domain and Firebase client variables, then deploy the `apps/web/dist` directory via Firebase Hosting.
+For the prepared judge path, build with `VITE_PUBLIC_SHOWCASE=true` and the
+Firebase client variables, then deploy `apps/web/dist`. For a future open
+submission backend, also set `VITE_API_BASE_URL` to the owned API domain.
 
 ## Pre-deploy checks
 
-Run all local checks, compile/validate rules with Firebase tooling, build the Docker image, and only then run the real acceptance gates. Docker, Firebase CLI, gcloud, and FFmpeg were not present in the initial local environment, so their execution remains pending until those tools/access are supplied.
+Run all local checks, compile/validate rules with Firebase tooling, build the
+web artifact, and only then run the real acceptance gates. The Firebase CLI and
+gcloud are now available and were used to deploy Hosting and Firestore rules.
+The Cloud Run Docker path remains intentionally undeployed.

@@ -13,8 +13,8 @@ from .schemas import AnalysisJob, AnalysisOutcome, Echo, ModalityStatus, Narrati
 
 
 class CausalAnalysisWorker:
-    pipeline_version = "still-causal-v1"
-    prompt_version = "bounded-audiovisual-observation-v1"
+    pipeline_version = "still-causal-v2"
+    prompt_version = "bounded-audiovisual-observation-v2"
 
     def __init__(self, *, store: DataStore, router: VideoModelRouter, gloo: GlooSacredTimingProvider, youversion: YouVersionClient) -> None:
         self.store = store

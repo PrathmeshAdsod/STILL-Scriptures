@@ -1,9 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Browser clients use the authenticated FastAPI boundary. Cloud Run's
-    // Admin SDK bypasses these rules; no project or provenance data is exposed
-    // by a direct Firestore client path.
+    // A judge may retrieve one prepared demo only after anonymous Firebase
+    // authentication. Collection listing and every browser write stay denied.
+    match /prepared_demos/{demoId} {
+      allow get: if request.auth != null;
+      allow list, create, update, delete: if false;
+    }
+
     match /{document=**} { allow read, write: if false; }
   }
 }

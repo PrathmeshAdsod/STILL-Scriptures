@@ -62,7 +62,7 @@ async def main() -> int:
                     start_offset_seconds=0,
                     end_offset_seconds=first_end,
                     narrative_state=NarrativeState(version=0),
-                    prompt_version="bounded-audiovisual-observation-v1",
+                    prompt_version="bounded-audiovisual-observation-v2",
                     purpose="capability_spike",
                 ),
             )
@@ -78,7 +78,7 @@ async def main() -> int:
                         start_offset_seconds=first_end,
                         end_offset_seconds=second_end,
                         narrative_state=first.narrative_state,
-                        prompt_version="bounded-audiovisual-observation-v1",
+                        prompt_version="bounded-audiovisual-observation-v2",
                         purpose="capability_spike",
                     ),
                 )

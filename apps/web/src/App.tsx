@@ -3,15 +3,36 @@ import { api } from './lib/api';
 import { clientConfig, firebaseConfigured } from './lib/config';
 import { inspectVideo, inspectYoutube, sha256, youtubeId } from './lib/source';
 import { observeFirebaseUser, signInToStill, uploadVideo } from './lib/firebase';
+import { loadPreparedDemo, parsePreparedDemo, visibleDemoEchoes } from './lib/preparedDemo';
 import { Html5PlaybackAdapter } from './playback/Html5PlaybackAdapter';
 import type { PlaybackAdapter } from './playback/PlaybackAdapter';
 import { YouTubePlaybackAdapter } from './playback/YouTubePlaybackAdapter';
-import { WatchedRangeTracker } from './playback/WatchedRangeTracker';
-import type { Echo, Project, ViewingSession } from './types';
+import { WatchedRangeTracker, contiguousFrontier } from './playback/WatchedRangeTracker';
+import type { Echo, PreparedDemo, Project, ViewingSession } from './types';
 
 type Route = { page: 'home' | 'add' | 'processing' | 'watch' | 'reflect'; projectId?: string };
 const sourceKey = (id: string) => `still:playback-source:${id}`;
 const sessionKey = (id: string) => `still:session:${id}`;
+const preparedDemoKey = (id: string) => `still:prepared-demo:${id}`;
+const preparedSessionKey = (id: string) => `still:prepared-session:${id}`;
+
+function storedPreparedDemo(projectId: string): PreparedDemo | undefined {
+  const value = sessionStorage.getItem(preparedDemoKey(projectId));
+  if (!value) return undefined;
+  try { return parsePreparedDemo(JSON.parse(value)); }
+  catch { return undefined; }
+}
+
+function storedPreparedSession(projectId: string): ViewingSession | undefined {
+  const value = sessionStorage.getItem(preparedSessionKey(projectId));
+  if (!value) return undefined;
+  try { return JSON.parse(value) as ViewingSession; }
+  catch { return undefined; }
+}
+
+function savePreparedSession(session: ViewingSession): void {
+  sessionStorage.setItem(preparedSessionKey(session.project_id), JSON.stringify(session));
+}
 
 function parseRoute(): Route {
   const [page = 'home', projectId] = location.hash.replace(/^#\/?/, '').split('/');
@@ -42,8 +63,8 @@ function Header({ quiet = false }: { quiet?: boolean }) {
   }
   return <header className={`site-header ${quiet ? 'quiet' : ''}`}>
     <button className="wordmark" onClick={() => go('/')} aria-label="STILL home"><Mark />STILL</button>
-    <nav aria-label="Primary navigation"><button onClick={() => go('/add')}>Add story</button><button onClick={showHowItWorks}>How it works</button></nav>
-    <button className="account-button" aria-label={clientConfig.publicShowcase ? 'Public competition preview' : signedIn ? 'Signed in account' : 'Sign in'} onClick={handleAccount} disabled={clientConfig.publicShowcase}><span>◌</span><b>{clientConfig.publicShowcase ? 'Public preview' : signedIn ? 'Account' : 'Sign in'}</b></button>
+    <nav aria-label="Primary navigation"><button onClick={() => go('/add')}>{clientConfig.publicShowcase ? 'Judge demo' : 'Add story'}</button><button onClick={showHowItWorks}>How it works</button></nav>
+    <button className="account-button" aria-label={signedIn ? 'Firebase guest session ready' : 'Start Firebase guest session'} onClick={handleAccount}><span>◌</span><b>{clientConfig.publicShowcase ? signedIn ? 'Guest ready' : 'Guest access' : signedIn ? 'Account' : 'Sign in'}</b></button>
     {authError && <p className="auth-error" role="alert">{authError}</p>}
   </header>;
 }
@@ -57,7 +78,7 @@ function Landing() {
         <p className="eyebrow">A SPOILER-SAFE REFLECTION LAYER</p>
         <h1>Let the story land<br />before it <em>speaks back.</em></h1>
         <p className="hero-summary">STILL meets you when a scene becomes meaningful—<br className="desktop-only" /> without pulling you ahead of the story.</p>
-        <button className="primary-action" onClick={() => go('/add')}><span>＋</span> Add a story <b>→</b></button>
+        <button className="primary-action" onClick={() => go('/add')}><span>＋</span> {clientConfig.publicShowcase ? 'Open judge demo' : 'Add a story'} <b>→</b></button>
         <p className="microcopy">WATCH FIRST. REFLECT WHEN YOU ARE READY.</p>
       </div>
       <div className="hero-orbit" aria-hidden="true"><div className="orbit-ring" /><span>THE<br />STILL<br />POINT</span><b>00:37</b></div>
@@ -68,7 +89,7 @@ function Landing() {
       <div><p className="eyebrow">THE PROMISE</p><h2>Meaning, never premature.</h2><span>Your watched frontier is the boundary.</span></div>
     </section>
     <section className="landing-detail" id="principle">
-      <div className="detail-copy"><p className="eyebrow blue">A DIFFERENT KIND OF VIDEO LIBRARY</p><h2>Designed for the pause<br />after the scene.</h2><p>STILL holds the context, the questions, and the right timing. It is deliberately quiet while the story is still unfolding.</p><button className="text-link" onClick={() => go('/add')}>Begin with your story <b>↗</b></button></div>
+      <div className="detail-copy"><p className="eyebrow blue">A DIFFERENT KIND OF VIDEO LIBRARY</p><h2>Designed for the pause<br />after the scene.</h2><p>STILL holds the context, the questions, and the right timing. It is deliberately quiet while the story is still unfolding.</p><button className="text-link" onClick={() => go('/add')}>{clientConfig.publicShowcase ? 'Try the prepared judge story' : 'Begin with your story'} <b>↗</b></button></div>
       <div className="observation-card" aria-label="A sample observation card">
         <div className="card-browser"><span /><span /><span /><b>THE QUIET ROOM / 00:37</b></div>
         <div className="observation-body"><div className="scene-illustration"><i className="hill" /><i className="person one" /><i className="person two" /></div><div className="observation-text"><p className="eyebrow">OBSERVED, NOT INTERPRETED</p><blockquote>“The room laughs, but he<br />does not look amused.”</blockquote><div><span /> Reflection held until watched</div></div></div>
@@ -76,6 +97,35 @@ function Landing() {
     </section>
     <footer><span>STILL / V1</span><p>A spoiler-safe reflection layer for video.</p><div aria-label="Product principles"><span>Private by design</span><span>No forced reflection</span></div></footer>
   </main>;
+}
+
+function JudgeDemoAccess() {
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  async function openDemo(event: FormEvent) {
+    event.preventDefault();
+    if (!code.trim() || busy) return;
+    setBusy(true); setError(undefined);
+    try {
+      const demo = await loadPreparedDemo(code);
+      sessionStorage.setItem(preparedDemoKey(demo.project.id), JSON.stringify(demo));
+      sessionStorage.removeItem(preparedSessionKey(demo.project.id));
+      go(`/watch/${demo.project.id}`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'The prepared demo could not be opened.');
+    } finally { setBusy(false); }
+  }
+  return <main className="app-shell"><Header quiet /><section className="source-page"><div className="source-intro"><p className="eyebrow blue">LIVE JUDGE EXPERIENCE</p><h1>Watch first.<br />Unlock only what you watched.</h1><p>This hosted path uses Firebase guest authentication and one real, provider-prepared YouTube story. Seeking ahead never advances the watched frontier.</p><div className="source-notes"><span>◌ No login or personal details required.</span><span>◌ Gemini, Gloo, and YouVersion output is prepared once, not simulated.</span><span>◌ The browser can read the accepted demo but cannot write Firestore data.</span></div></div><form className="source-form judge-access" onSubmit={openDemo}>
+    <p className="showcase-note">Enter the code supplied in the judging materials. Firebase signs you in as a temporary, passwordless guest, then retrieves the exact prepared result.</p>
+    <p className="eyebrow blue">PREPARED DEMO ACCESS</p>
+    <label>Judge demo code<input value={code} onChange={(event) => setCode(event.target.value)} placeholder="STILL-…" autoCapitalize="characters" autoComplete="off" spellCheck={false} required /></label>
+    {!firebaseConfigured && <p className="form-error" role="alert">Firebase is not configured. The app will not substitute local fixture data.</p>}
+    {error && <p className="form-error" role="alert">{error}</p>}
+    <button className="primary-action wide" disabled={!firebaseConfigured || !code.trim() || busy}>{busy ? 'Opening the quiet room…' : 'Open prepared story'} <b>→</b></button>
+    <a className="showcase-link" href={clientConfig.githubUrl} target="_blank" rel="noreferrer">Inspect the public implementation <b>↗</b></a>
+    <p className="form-fineprint">The access code is a demo locator, not a password. No provider credential is shipped to this browser.</p>
+  </form></section></main>;
 }
 
 function AddStory() {
@@ -86,7 +136,8 @@ function AddStory() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<number>();
   const [error, setError] = useState<string>();
-  const canSubmit = !clientConfig.publicShowcase && Boolean(title.trim() && (sourceType === 'upload' ? file : youtube));
+  const canSubmit = Boolean(title.trim() && (sourceType === 'upload' ? file : youtube));
+  if (clientConfig.publicShowcase) return <JudgeDemoAccess />;
   async function submit(event: FormEvent) {
     event.preventDefault(); if (!canSubmit) return;
     setBusy(true); setError(undefined);
@@ -106,15 +157,13 @@ function AddStory() {
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'This story could not be added.'); } finally { setBusy(false); }
   }
   return <main className="app-shell"><Header quiet /><section className="source-page"><div className="source-intro"><p className="eyebrow blue">NEW STORY</p><h1>Give the story<br />its first quiet room.</h1><p>Upload a video you own or choose a public YouTube story. STILL prepares it once, then stays out of the way.</p><div className="source-notes"><span>◌ Your video stays private to your project.</span><span>◌ Processing can continue after you leave.</span><span>◌ No reflection is created from title alone.</span></div></div><form className="source-form" onSubmit={submit}>
-      {clientConfig.publicShowcase && <p className="showcase-note">This public Spark-hosted preview keeps provider credentials off the browser. The real audiovisual run is shown in the competition demo and documented in the repository.</p>}
       <div className="source-tabs" role="tablist"><button type="button" className={sourceType === 'upload' ? 'selected' : ''} onClick={() => setSourceType('upload')}>Upload a video</button><button type="button" className={sourceType === 'youtube' ? 'selected' : ''} onClick={() => setSourceType('youtube')}>Public YouTube URL</button></div>
       <label>Story title<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A name you will recognise" maxLength={180} required /></label>
       {sourceType === 'upload' ? <label className="file-drop"><input type="file" accept="video/mp4,video/webm,video/quicktime,video/mpeg" onChange={(e) => { const selected = e.target.files?.[0]; setFile(selected); if (selected && !title) setTitle(selected.name.replace(/\.[^/.]+$/, '')); }} required /><span className="upload-glyph">↑</span><strong>{file?.name ?? 'Choose a video file'}</strong><small>{file ? `${Math.round(file.size / 1024 / 1024)} MB` : 'MP4, WebM, MOV, MPEG'}</small></label> : <label>Public YouTube link<input value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" inputMode="url" required /><small>STILL validates public playback before processing. It never downloads YouTube video.</small></label>}
       {progress !== undefined && <div className="upload-progress"><i style={{ transform: `scaleX(${progress})` }} /><span>Uploading {Math.round(progress * 100)}%</span></div>}
       {!firebaseConfigured && sourceType === 'upload' && <p className="form-warning">Firebase Storage is not configured in this environment, so upload remains unavailable rather than simulated.</p>}
       {error && <p role="alert" className="form-error">{error}</p>}
-      <button className="primary-action wide" disabled={!canSubmit || busy}>{clientConfig.publicShowcase ? 'Interactive run shown in demo' : busy ? 'Preparing your story…' : 'Prepare this story'} <b>→</b></button>
-      {clientConfig.publicShowcase && <a className="showcase-link" href={clientConfig.githubUrl} target="_blank" rel="noreferrer">Explore the implementation <b>↗</b></a>}
+      <button className="primary-action wide" disabled={!canSubmit || busy}>{busy ? 'Preparing your story…' : 'Prepare this story'} <b>→</b></button>
       <p className="form-fineprint">By continuing, you confirm you own the video or have the right to use it.</p>
     </form></section></main>;
 }
@@ -144,20 +193,125 @@ function Processing({ projectId }: { projectId: string }) {
 function formatTime(seconds: number) { const total = Math.max(0, Math.floor(seconds)); return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`; }
 
 function Watch({ projectId }: { projectId: string }) {
-  const [project, setProject] = useState<Project>(); const [session, setSession] = useState<ViewingSession>(); const [echoes, setEchoes] = useState<Echo[]>([]); const [showReflections, setShowReflections] = useState(false); const [playerState, setPlayerState] = useState<'idle' | 'playing' | 'paused' | 'ended'>('idle'); const [time, setTime] = useState(0); const [error, setError] = useState<string>();
-  const videoRef = useState(() => ({ current: null as HTMLVideoElement | null }))[0]; const youtubeRef = useState(() => ({ current: null as HTMLDivElement | null }))[0]; const adapterRef = useState(() => ({ current: undefined as PlaybackAdapter | undefined }))[0]; const trackerRef = useState(() => new WatchedRangeTracker())[0];
-  const source = project?.source; const sourceUrl = sessionStorage.getItem(sourceKey(projectId)); const sessionId = session?.id;
-  useEffect(() => { let active = true; void (async () => { try { const loaded = await api.getProject(projectId); const sessionId = sessionStorage.getItem(sessionKey(projectId)); const started = sessionId ? { session_id: sessionId } : await api.createSession(projectId); if (!sessionId) sessionStorage.setItem(sessionKey(projectId), started.session_id); if (active) { setProject(loaded.project); setSession({ id: started.session_id, project_id: projectId, watched_ranges: [], contiguous_frontier_seconds: 0, story_complete: false, ended_naturally: false }); } } catch (caught) { if (active) setError(caught instanceof Error ? caught.message : 'This watch session could not start.'); } })(); return () => { active = false; }; }, [projectId]);
-  useEffect(() => { if (!source || !sessionId) return; let disposed = false; const setup = async () => { try { let adapter: PlaybackAdapter; if (source.kind === 'youtube' && source.public_url && youtubeRef.current) { adapter = new YouTubePlaybackAdapter(youtubeRef.current); await adapter.load(youtubeId(source.public_url) ?? ''); } else if (source.kind === 'upload' && sourceUrl && videoRef.current) { adapter = new Html5PlaybackAdapter(videoRef.current); await adapter.load(sourceUrl); } else { setError('Playback requires the original authorized source. No substitute media is shown.'); return; } if (disposed) { adapter.destroy(); return; } adapterRef.current = adapter; const sync = async (endedNaturally = false) => { if (!sessionId || !source.duration_seconds) return; try { const next = await api.updateSession(projectId, sessionId, { ranges: trackerRef.snapshot(), duration_seconds: source.duration_seconds, ended_naturally: endedNaturally }); if (!disposed) setSession(next); } catch (caught) { if (!disposed) setError(caught instanceof Error ? caught.message : 'Watch progress could not be saved.'); } }; const unsubscribe = [adapter.onTimeUpdate((value) => { trackerRef.sample(value, adapter.getPlaybackRate()); setTime(value); if (Math.floor(value) % 12 === 0) void sync(); }), adapter.onSeek(() => trackerRef.markSeeking()), adapter.onStateChange((state) => { trackerRef.setPlaying(state === 'playing'); setPlayerState(state); if (state === 'paused') void sync(); }), adapter.onEnded(() => void sync(true))]; return () => unsubscribe.forEach((off) => off()); } catch (caught) { if (!disposed) setError(caught instanceof Error ? caught.message : 'Playback could not be loaded.'); } }; let teardown: (() => void) | undefined; void setup().then((result) => { teardown = result; }); return () => { disposed = true; teardown?.(); adapterRef.current?.destroy(); adapterRef.current = undefined; }; }, [adapterRef, projectId, sessionId, source, sourceUrl, trackerRef, videoRef, youtubeRef]);
-  useEffect(() => { if (!showReflections || !session) return; void api.getEchoes(projectId, session.id).then(setEchoes).catch((caught) => setError(caught instanceof Error ? caught.message : 'Reflections are unavailable.')); }, [projectId, session, showReflections]);
+  const [preparedDemo] = useState(() => storedPreparedDemo(projectId));
+  const [project, setProject] = useState<Project>();
+  const [session, setSession] = useState<ViewingSession>();
+  const [echoes, setEchoes] = useState<Echo[]>([]);
+  const [showReflections, setShowReflections] = useState(false);
+  const [playerState, setPlayerState] = useState<'idle' | 'playing' | 'paused' | 'ended'>('idle');
+  const [time, setTime] = useState(0);
+  const [error, setError] = useState<string>();
+  const videoRef = useState(() => ({ current: null as HTMLVideoElement | null }))[0];
+  const youtubeRef = useState(() => ({ current: null as HTMLDivElement | null }))[0];
+  const adapterRef = useState(() => ({ current: undefined as PlaybackAdapter | undefined }))[0];
+  const trackerRef = useState(() => new WatchedRangeTracker())[0];
+  const source = project?.source;
+  const sourceUrl = sessionStorage.getItem(sourceKey(projectId));
+  const sessionId = session?.id;
+
+  useEffect(() => {
+    if (preparedDemo) {
+      const restored = storedPreparedSession(projectId) ?? { id: `prepared-${projectId}`, project_id: projectId, watched_ranges: [], contiguous_frontier_seconds: 0, story_complete: false, ended_naturally: false };
+      trackerRef.restore(restored.watched_ranges);
+      setProject(preparedDemo.project);
+      setSession(restored);
+      return;
+    }
+    let active = true;
+    void (async () => {
+      try {
+        const loaded = await api.getProject(projectId);
+        const existingSessionId = sessionStorage.getItem(sessionKey(projectId));
+        const started = existingSessionId ? { session_id: existingSessionId } : await api.createSession(projectId);
+        if (!existingSessionId) sessionStorage.setItem(sessionKey(projectId), started.session_id);
+        if (active) {
+          setProject(loaded.project);
+          setSession({ id: started.session_id, project_id: projectId, watched_ranges: [], contiguous_frontier_seconds: 0, story_complete: false, ended_naturally: false });
+        }
+      } catch (caught) { if (active) setError(caught instanceof Error ? caught.message : 'This watch session could not start.'); }
+    })();
+    return () => { active = false; };
+  }, [preparedDemo, projectId, trackerRef]);
+
+  useEffect(() => {
+    if (!source || !sessionId) return;
+    let disposed = false;
+    const setup = async () => {
+      try {
+        let adapter: PlaybackAdapter;
+        if (source.kind === 'youtube' && source.public_url && youtubeRef.current) {
+          adapter = new YouTubePlaybackAdapter(youtubeRef.current);
+          await adapter.load(youtubeId(source.public_url) ?? '');
+        } else if (source.kind === 'upload' && sourceUrl && videoRef.current) {
+          adapter = new Html5PlaybackAdapter(videoRef.current);
+          await adapter.load(sourceUrl);
+        } else {
+          setError('Playback requires the original authorized source. No substitute media is shown.');
+          return;
+        }
+        if (disposed) { adapter.destroy(); return; }
+        adapterRef.current = adapter;
+        const sync = async (endedNaturally = false) => {
+          if (!sessionId || !source.duration_seconds) return;
+          const ranges = trackerRef.snapshot();
+          if (preparedDemo) {
+            setSession((current) => {
+              if (!current) return current;
+              const ended = current.ended_naturally || endedNaturally;
+              const frontier = contiguousFrontier(ranges);
+              const next = { ...current, watched_ranges: ranges, contiguous_frontier_seconds: frontier, ended_naturally: ended, story_complete: ended && frontier >= Math.max(0, source.duration_seconds! - 2) };
+              savePreparedSession(next);
+              return next;
+            });
+            return;
+          }
+          try {
+            const next = await api.updateSession(projectId, sessionId, { ranges, duration_seconds: source.duration_seconds, ended_naturally: endedNaturally });
+            if (!disposed) setSession(next);
+          } catch (caught) { if (!disposed) setError(caught instanceof Error ? caught.message : 'Watch progress could not be saved.'); }
+        };
+        const unsubscribe = [
+          adapter.onTimeUpdate((value) => { trackerRef.sample(value, adapter.getPlaybackRate()); setTime(value); if (Math.floor(value) % 12 === 0) void sync(); }),
+          adapter.onSeek(() => trackerRef.markSeeking()),
+          adapter.onStateChange((state) => { trackerRef.setPlaying(state === 'playing'); setPlayerState(state); if (state === 'paused') void sync(); }),
+          adapter.onEnded(() => void sync(true)),
+        ];
+        return () => unsubscribe.forEach((off) => off());
+      } catch (caught) { if (!disposed) setError(caught instanceof Error ? caught.message : 'Playback could not be loaded.'); }
+    };
+    let teardown: (() => void) | undefined;
+    void setup().then((result) => { teardown = result; });
+    return () => { disposed = true; teardown?.(); adapterRef.current?.destroy(); adapterRef.current = undefined; };
+  }, [adapterRef, preparedDemo, projectId, sessionId, source, sourceUrl, trackerRef, videoRef, youtubeRef]);
+
+  useEffect(() => {
+    if (!showReflections || !session) return;
+    if (preparedDemo) {
+      setEchoes(visibleDemoEchoes(preparedDemo.echoes, session.contiguous_frontier_seconds));
+      return;
+    }
+    void api.getEchoes(projectId, session.id).then(setEchoes).catch((caught) => setError(caught instanceof Error ? caught.message : 'Reflections are unavailable.'));
+  }, [preparedDemo, projectId, session, showReflections]);
   if (!project || !source) return <main className="app-shell"><Header quiet /><div className="center-message">Opening the quiet room…</div></main>;
-  return <main className="watch-shell"><Header quiet /><section className="watch-header"><p className="eyebrow blue">FIRST WATCH</p><h1>{project.title}</h1><span>{formatTime(time)} / {formatTime(source.duration_seconds ?? 0)}</span></section><section className="watch-stage"><div className="video-frame">{source.kind === 'youtube' ? <div ref={(node) => { youtubeRef.current = node; }} className="youtube-frame" title="YouTube story" /> : <video ref={(node) => { videoRef.current = node; }} controls playsInline preload="metadata" aria-label={`Video: ${project.title}`} />}<div className="video-corner top">STILL / FIRST WATCH</div><div className="video-corner bottom">{playerState === 'playing' ? 'PLAYING' : 'QUIETLY WAITING'}</div></div><aside className="watch-aside"><p className="eyebrow">YOUR FRONTIER</p><strong>{formatTime(session?.contiguous_frontier_seconds ?? 0)}</strong><span>Only this much story can inform what you see below.</span><button className="secondary-action" onClick={() => void adapterRef.current?.play()}>Continue story <b>→</b></button></aside></section><section className="quiet-reflection"><button className="reflection-toggle" onClick={() => { setShowReflections((current) => !current); adapterRef.current?.pause(); }} aria-expanded={showReflections}><span><i /> Reflections so far</span><b>{showReflections ? '−' : '+'}</b></button>{showReflections && <div className="reflection-drawer">{echoes.length ? echoes.map((echo) => <article className="early-echo" key={echo.id}><p className="timestamp">{formatTime(echo.knowledge_cutoff_seconds)}</p><h2>{echo.tension}</h2><p>{echo.scene_context}</p><button className="text-link" onClick={() => { adapterRef.current?.pause(); }}>Pause with this moment <b>↗</b></button></article>) : <p className="empty-reflection">Nothing has been offered for the portion you have watched. STILL is comfortable with silence.</p>}</div>}</section>{session?.story_complete && <section className="story-complete"><p className="eyebrow blue">STORY COMPLETE</p><h2>The whole story has room to breathe now.</h2><p>You watched it through. Full reflections can now include the complete arc without spoiling it.</p><button className="primary-action" onClick={() => go(`/reflect/${projectId}`)}>Enter reflection <b>→</b></button></section>}{error && <p className="watch-error" role="alert">{error}</p>}</main>;
+  return <main className="watch-shell"><Header quiet />{preparedDemo && <p className="prepared-banner">PREPARED DEMO · LIVE PROVIDER OUTPUT · READ-ONLY FIREBASE RECORD</p>}<section className="watch-header"><p className="eyebrow blue">FIRST WATCH</p><h1>{project.title}</h1><span>{formatTime(time)} / {formatTime(source.duration_seconds ?? 0)}</span></section><section className="watch-stage"><div className="video-frame">{source.kind === 'youtube' ? <div ref={(node) => { youtubeRef.current = node; }} className="youtube-frame" title="YouTube story" /> : <video ref={(node) => { videoRef.current = node; }} controls playsInline preload="metadata" aria-label={`Video: ${project.title}`} />}<div className="video-corner top">STILL / FIRST WATCH</div><div className="video-corner bottom">{playerState === 'playing' ? 'PLAYING' : 'QUIETLY WAITING'}</div></div><aside className="watch-aside"><p className="eyebrow">YOUR FRONTIER</p><strong>{formatTime(session?.contiguous_frontier_seconds ?? 0)}</strong><span>Only this much story can inform what you see below.</span><button className="secondary-action" onClick={() => void adapterRef.current?.play()}>Continue story <b>→</b></button></aside></section><section className="quiet-reflection"><button className="reflection-toggle" onClick={() => { setShowReflections((current) => !current); adapterRef.current?.pause(); }} aria-expanded={showReflections}><span><i /> Reflections so far</span><b>{showReflections ? '−' : '+'}</b></button>{showReflections && <div className="reflection-drawer">{echoes.length ? echoes.map((echo) => <article className="early-echo" key={echo.id}><p className="timestamp">{formatTime(echo.knowledge_cutoff_seconds)}</p><h2>{echo.tension}</h2><p>{echo.scene_context}</p><button className="text-link" onClick={() => { adapterRef.current?.pause(); }}>Pause with this moment <b>↗</b></button></article>) : <p className="empty-reflection">Nothing has been offered for the portion you have watched. STILL is comfortable with silence.</p>}</div>}</section>{session?.story_complete && <section className="story-complete"><p className="eyebrow blue">STORY COMPLETE</p><h2>The whole story has room to breathe now.</h2><p>You watched it through. Full reflections can now include the complete arc without spoiling it.</p><button className="primary-action" onClick={() => go(`/reflect/${projectId}`)}>Enter reflection <b>→</b></button></section>}{error && <p className="watch-error" role="alert">{error}</p>}</main>;
 }
 
 function Reflect({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project>(); const [echoes, setEchoes] = useState<Echo[]>(); const [error, setError] = useState<string>();
-  useEffect(() => { const sessionId = sessionStorage.getItem(sessionKey(projectId)); if (!sessionId) { setError('Return to the story and finish watching before opening full reflection.'); return; } void Promise.all([api.getProject(projectId), api.getStoryReflection(projectId, sessionId)]).then(([loaded, reflection]) => { setProject(loaded.project); setEchoes(reflection); }).catch((caught) => setError(caught instanceof Error ? caught.message : 'Full reflection is not available yet.')); }, [projectId]);
-  return <main className="reflect-shell"><Header quiet /><section className="reflect-intro"><p className="eyebrow blue">AFTER THE STORY</p><h1>{project?.title ?? 'Reflection'}</h1><p>These moments are grounded in the complete story you watched. Scripture is shown only when retrieved with its version and attribution.</p></section>{error && <p className="form-error reflect-error" role="alert">{error}</p>}{echoes?.length === 0 && <section className="no-echo"><p className="eyebrow">STILL REMAINED QUIET</p><h2>No Scripture Echo was forced into this story.</h2><p>That is a complete result, not a missing one.</p><button className="secondary-action" onClick={() => go(`/watch/${projectId}`)}>Return to story</button></section>}<section className="echo-list">{echoes?.map((echo, index) => <article className="full-echo" key={echo.id}><div className="echo-number">0{index + 1}</div><div><p className="timestamp">A moment at {formatTime(echo.knowledge_cutoff_seconds)}</p><h2>{echo.tension}</h2><p className="scene-context">{echo.scene_context}</p>{echo.exact_scripture_text && <figure><blockquote>{echo.exact_scripture_text}</blockquote><figcaption>{echo.scripture_reference} {echo.bible_version ? `· ${echo.bible_version}` : ''}</figcaption><small>{echo.copyright_attribution}</small></figure>}{echo.connection_explanation && <p className="connection">{echo.connection_explanation}</p>}</div></article>)}</section></main>;
+  useEffect(() => {
+    const demo = storedPreparedDemo(projectId);
+    if (demo) {
+      const localSession = storedPreparedSession(projectId);
+      setProject(demo.project);
+      if (!localSession?.story_complete) setError('Return to the story and finish watching before opening full reflection.');
+      else setEchoes(demo.echoes);
+      return;
+    }
+    const sessionId = sessionStorage.getItem(sessionKey(projectId));
+    if (!sessionId) { setError('Return to the story and finish watching before opening full reflection.'); return; }
+    void Promise.all([api.getProject(projectId), api.getStoryReflection(projectId, sessionId)]).then(([loaded, reflection]) => { setProject(loaded.project); setEchoes(reflection); }).catch((caught) => setError(caught instanceof Error ? caught.message : 'Full reflection is not available yet.'));
+  }, [projectId]);
+  return <main className="reflect-shell"><Header quiet />{project?.source?.prepared_demo && <p className="prepared-banner">PREPARED DEMO · EXACT YOUVERSION TEXT AND ATTRIBUTION</p>}<section className="reflect-intro"><p className="eyebrow blue">AFTER THE STORY</p><h1>{project?.title ?? 'Reflection'}</h1><p>These moments are grounded in the complete story you watched. Scripture is shown only when retrieved with its version and attribution.</p></section>{error && <p className="form-error reflect-error" role="alert">{error}</p>}{echoes?.length === 0 && <section className="no-echo"><p className="eyebrow">STILL REMAINED QUIET</p><h2>No Scripture Echo was forced into this story.</h2><p>That is a complete result, not a missing one.</p><button className="secondary-action" onClick={() => go(`/watch/${projectId}`)}>Return to story</button></section>}<section className="echo-list">{echoes?.map((echo, index) => <article className="full-echo" key={echo.id}><div className="echo-number">0{index + 1}</div><div><p className="timestamp">A moment at {formatTime(echo.knowledge_cutoff_seconds)}</p><h2>{echo.tension}</h2><p className="scene-context">{echo.scene_context}</p>{echo.exact_scripture_text && <figure><blockquote>{echo.exact_scripture_text}</blockquote><figcaption>{echo.scripture_reference} {echo.bible_version ? `· ${echo.bible_version}` : ''}</figcaption><small>{echo.copyright_attribution}</small></figure>}{echo.connection_explanation && <p className="connection">{echo.connection_explanation}</p>}</div></article>)}</section></main>;
 }
 
-export default function App() { const route = useRoute(); if (route.page === 'add') return <AddStory />; if (route.page === 'processing' && route.projectId) return <Processing projectId={route.projectId} />; if (route.page === 'watch' && route.projectId) return <Watch projectId={route.projectId} />; if (route.page === 'reflect' && route.projectId) return <Reflect projectId={route.projectId} />; return <Landing />; }
+export default function App() { const route = useRoute(); if (route.page === 'add') return <AddStory />; if (route.page === 'processing' && route.projectId) return <Processing key={route.projectId} projectId={route.projectId} />; if (route.page === 'watch' && route.projectId) return <Watch key={route.projectId} projectId={route.projectId} />; if (route.page === 'reflect' && route.projectId) return <Reflect key={route.projectId} projectId={route.projectId} />; return <Landing />; }

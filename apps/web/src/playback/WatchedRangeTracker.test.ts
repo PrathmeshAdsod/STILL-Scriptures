@@ -14,4 +14,13 @@ describe('WatchedRangeTracker', () => {
   it('merges contiguous natural watch coverage', () => {
     expect(contiguousFrontier([[0, 50], [50.2, 99]])).toBe(99);
   });
+
+  it('restores verified coverage without turning a later seek into coverage', () => {
+    const tracker = new WatchedRangeTracker();
+    tracker.restore([[0, 30]]);
+    tracker.setPlaying(true);
+    tracker.markSeeking(); tracker.sample(80); tracker.sample(82);
+    expect(tracker.snapshot()).toEqual([[0, 30], [80, 82]]);
+    expect(tracker.frontier()).toBe(30);
+  });
 });

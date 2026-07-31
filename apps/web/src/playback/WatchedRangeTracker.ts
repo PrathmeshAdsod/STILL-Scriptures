@@ -19,6 +19,7 @@ export class WatchedRangeTracker {
   private lastTime?: number;
   private playing = false;
   private seeking = false;
+  restore(ranges: Range[]) { this.ranges = mergeRanges(ranges); this.lastTime = undefined; this.seeking = false; }
   setPlaying(playing: boolean) { this.playing = playing; if (!playing) this.lastTime = undefined; }
   markSeeking() { this.seeking = true; this.lastTime = undefined; }
   sample(currentTime: number, playbackRate = 1) {

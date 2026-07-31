@@ -122,10 +122,10 @@ class InMemoryDataStore:
 class FirestoreDataStore:
     """Firestore implementation using a project-scoped collection hierarchy."""
 
-    def __init__(self, project_id: str) -> None:
-        from google.cloud.firestore_async import AsyncClient
+    def __init__(self, project_id: str, credentials=None) -> None:
+        from google.cloud.firestore_v1.async_client import AsyncClient
 
-        self.client = AsyncClient(project=project_id)
+        self.client = AsyncClient(project=project_id, credentials=credentials)
         self.projects = self.client.collection("projects")
         self.jobs = self.client.collection("analysisJobs")
         self.sessions = self.client.collection("viewingSessions")
@@ -180,8 +180,8 @@ class FirestoreDataStore:
         await self.projects.document(str(candidate.project_id)).collection("reflectionCandidates").document(str(candidate.id)).set(self._doc(candidate))
 
     async def candidates(self, project_id: UUID) -> list[ReflectionCandidate]:
-        query = self.projects.document(str(project_id)).collection("reflectionCandidates").order_by("knowledge_cutoff_seconds").order_by("observation_index")
-        return [ReflectionCandidate.model_validate(item.to_dict()) async for item in query.stream()]
+        records = [ReflectionCandidate.model_validate(item.to_dict()) async for item in self.projects.document(str(project_id)).collection("reflectionCandidates").stream()]
+        return sorted(records, key=lambda item: (item.knowledge_cutoff_seconds, item.observation_index))
 
     async def put_echo(self, echo: Echo) -> None:
         await self.projects.document(str(echo.project_id)).collection("echoes").document(str(echo.id)).set(self._doc(echo))

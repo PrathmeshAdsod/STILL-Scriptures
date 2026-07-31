@@ -1,5 +1,6 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { GoogleAuthProvider, getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, type User } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { clientConfig, firebaseConfigured } from './config';
 
@@ -8,11 +9,12 @@ const firebaseApp = firebaseConfigured
   : undefined;
 
 export const firebaseAuth = firebaseApp ? getAuth(firebaseApp) : undefined;
+export const firebaseDb = firebaseApp ? getFirestore(firebaseApp) : undefined;
 export const firebaseStorage = firebaseApp ? getStorage(firebaseApp) : undefined;
 
 export async function getIdToken(): Promise<string | undefined> {
   if (!firebaseAuth) return undefined;
-  if (!firebaseAuth.currentUser && clientConfig.appMode === 'development') await signInAnonymously(firebaseAuth);
+  if (!firebaseAuth.currentUser && (clientConfig.appMode === 'development' || clientConfig.publicShowcase)) await signInAnonymously(firebaseAuth);
   return firebaseAuth.currentUser?.getIdToken();
 }
 
@@ -27,11 +29,16 @@ export function observeFirebaseUser(listener: (user: User | null) => void): () =
 export async function signInToStill(): Promise<void> {
   if (!firebaseAuth) throw new Error('Firebase Authentication is not configured in this environment.');
   if (firebaseAuth.currentUser) return;
-  if (clientConfig.appMode === 'development') {
+  if (clientConfig.appMode === 'development' || clientConfig.publicShowcase) {
     await signInAnonymously(firebaseAuth);
     return;
   }
   await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+}
+
+export async function signInJudgeAnonymously(): Promise<void> {
+  if (!firebaseAuth) throw new Error('Firebase Authentication is not configured for this demo.');
+  if (!firebaseAuth.currentUser) await signInAnonymously(firebaseAuth);
 }
 
 export function activeFirebaseUid(): string | undefined {

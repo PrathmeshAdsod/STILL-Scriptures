@@ -50,3 +50,20 @@ export interface ViewingSession {
   story_complete: boolean;
   ended_naturally: boolean;
 }
+
+export interface PreparedDemoProvenance {
+  generated_at: string;
+  source_url: string;
+  source_rights_note: string;
+  analysis_windows: number;
+  pipeline: string[];
+  outcome: 'ACCEPTED_ECHO';
+}
+
+export interface PreparedDemo {
+  schema_version: 1;
+  judge_label: string;
+  project: Project;
+  echoes: Echo[];
+  provenance: PreparedDemoProvenance;
+}
