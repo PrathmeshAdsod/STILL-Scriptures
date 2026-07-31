@@ -38,7 +38,7 @@ have passed. See `docs/real-e2e-acceptance.md`.
 | Firebase | Anonymous Auth, Firestore prepared record/rules, and Hosting deployed at <https://still-scriptures.web.app> |
 | Tasks / Cloud Run | Secured arbitrary-YouTube release and deployment automation implemented; deployment blocked only by unlinked Blaze billing |
 | NVIDIA | Disabled and untested |
-| GitHub | Public `master` currently contains the prepared-demo release; the arbitrary-source hardening changes still need the next commit and push |
+| GitHub | Public `master` contains the prepared demo and arbitrary-source hardening through commit `3dd8178` |
 
 The judge source is Dogs Inc's 4:05 public release of “Pip.” STILL embeds the
 original; copyright remains with its owners. The public code is
@@ -71,8 +71,8 @@ original; copyright remains with its owners. The public code is
    request payment details in chat.
 2. Run `scripts/deploy-production.ps1`, then complete the public arbitrary-URL
    browser acceptance in `docs/deployment.md`.
-3. Commit and push the verified release to
-   <https://github.com/PrathmeshAdsod/STILL-Scriptures> on `master`.
+3. Confirm the deployed revision and public `master` still match before the
+   final recording.
 4. Record and upload a public YouTube demo no longer than three minutes.
 5. Publish/attach the executed Kaggle notebook and create the Kaggle writeup.
 6. Preview all links signed out, then ask the entrant before the irreversible
