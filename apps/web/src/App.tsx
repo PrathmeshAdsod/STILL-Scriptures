@@ -66,7 +66,7 @@ function Header({ quiet = false }: { quiet?: boolean }) {
       <button onClick={showHowItWorks}>How it works</button>
       <button onClick={() => go('/plans')}>Plans</button>
     </nav>
-    <button className="account-button" onClick={() => go(user ? '/account' : '/auth')}>
+    <button className="account-button" aria-label={user ? 'Account' : 'Sign in'} onClick={() => go(user ? '/account' : '/auth')}>
       <span className={user ? 'account-dot active' : 'account-dot'} aria-hidden="true" />
       <b>{user ? 'Account' : 'Sign in'}</b>
     </button>
