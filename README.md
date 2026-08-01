@@ -22,8 +22,10 @@ This is the real hosted application, not a prepared sample:
 - see honest queued and per-window processing progress;
 - reopen saved analyses from **My videos** on any signed-in device, with watch
   progress restored and the same YouTube link reused without another paid run;
-- watch through the original YouTube player with contiguous-frontier spoiler
-  protection; and
+- watch through the original YouTube player with reflections synchronized to
+  the furthest timestamp reached, including a deliberate scrub, while full
+  Story Complete review still requires continuous coverage and a natural end;
+  and
 - receive a verified reflection or an explicit `READY_NO_ECHO` result, then
   delete individual saved videos or the complete account when desired.
 
@@ -40,12 +42,12 @@ and no access credential is published in the site or repository.
 | Authentication | Firebase email/password sign-up, verification, sign-in, sign-out, and reset deployed |
 | API and jobs | FastAPI on Cloud Run with Firestore and an authenticated Cloud Tasks worker |
 | Real arbitrary-video gate | The submitted 5:58 YouTube test completed 9/9 full audiovisual windows through the hosted API in about 84 seconds and ended honestly as `READY_NO_ECHO` |
-| Real reflection demo | Dogs Inc's 4:05 “Pip” completed 7/7 hosted audiovisual windows; four candidates at 2:00, 2:40, and 3:20 yielded two verified timed reflections at 2:00 and 3:20 |
+| Real reflection demos | Dogs Inc's 4:05 “Pip” produced verified Echoes at 2:00 and 3:20; “The Present” produced an exact YouVersion-backed Ezekiel 36:26 Echo at 2:40 |
 | Gemini | Live bounded audiovisual analysis verified |
 | Gloo | Live structured acceptance and abstention verified; production allows at most three temporally distinct candidates per project |
 | YouVersion | Canonical passage retrieval and attribution verified for accepted Echoes |
 | Persistence | Owner-scoped video library, same-link reuse, server-saved viewing sessions, project deletion, and complete account deletion are deployed and production-tested |
-| Automated checks | 32 API tests and 4 web tests pass; typecheck, lint, and production build pass |
+| Automated checks | 35 API tests and 5 web tests pass; typecheck, lint, and production build pass |
 
 No new project becomes ready from fixtures, title-only analysis, captions-only
 analysis, static Echoes, or fabricated provider output. Production startup

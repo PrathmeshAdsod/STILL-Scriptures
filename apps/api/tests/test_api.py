@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.schemas import ProjectStatus
+from app.schemas import AnalysisOutcome, Echo, ProjectStatus
 
 
 def test_analysis_start_is_idempotent_and_owned() -> None:
@@ -71,17 +71,63 @@ def test_saved_video_library_lookup_and_session_resume_are_owned() -> None:
         saved = client.patch(
             f"/api/projects/{project_id}/viewing-sessions/{session_id}",
             headers=owner,
-            json={"ranges": [[0, 18]], "duration_seconds": 245, "ended_naturally": False},
+            json={"ranges": [[0, 18]], "duration_seconds": 245, "current_position_seconds": 18, "ended_naturally": False},
         )
         assert saved.status_code == 200
         assert saved.json()["contiguous_frontier_seconds"] == 18
+        assert saved.json()["furthest_reached_seconds"] == 18
         resumed = client.post(f"/api/projects/{project_id}/viewing-sessions/resume", headers=owner)
         assert resumed.json()["id"] == session_id
         assert resumed.json()["contiguous_frontier_seconds"] == 18
+        assert resumed.json()["furthest_reached_seconds"] == 18
 
         assert client.delete(f"/api/projects/{project_id}", headers=other).status_code == 403
         assert client.delete(f"/api/projects/{project_id}", headers=owner).status_code == 204
         assert client.get("/api/projects", headers=owner).json() == []
+
+
+def test_seeked_playhead_unlocks_timed_echo_but_not_story_complete() -> None:
+    headers = {"X-Development-User": "timed-viewer"}
+    with TestClient(app) as client:
+        project_id = client.post("/api/projects", headers=headers, json={"title": "Timed story"}).json()["project_id"]
+        store = client.app.state.store
+        project = asyncio.run(store.get_project(UUID(project_id)))
+        project.status = ProjectStatus.READY
+        asyncio.run(store.put_project(project))
+        asyncio.run(
+            store.put_echo(
+                Echo(
+                    project_id=UUID(project_id),
+                    knowledge_cutoff_seconds=160,
+                    first_view_interpretation="A guarded response begins to soften.",
+                    tension="Reluctance versus connection",
+                    scene_context="The character reaches a new moment.",
+                    outcome=AnalysisOutcome.ACCEPT,
+                    scripture_reference="Ezekiel 36:26",
+                    confidence=0.9,
+                )
+            )
+        )
+        session = client.post(f"/api/projects/{project_id}/viewing-sessions/resume", headers=headers).json()
+
+        saved = client.patch(
+            f"/api/projects/{project_id}/viewing-sessions/{session['id']}",
+            headers=headers,
+            json={
+                "ranges": [[0, 14]],
+                "duration_seconds": 259,
+                "current_position_seconds": 211,
+                "ended_naturally": False,
+            },
+        )
+
+        assert saved.status_code == 200
+        assert saved.json()["contiguous_frontier_seconds"] == 14
+        assert saved.json()["furthest_reached_seconds"] == 211
+        echoes = client.get(f"/api/projects/{project_id}/echoes", headers=headers, params={"session_id": session["id"]})
+        assert [echo["scripture_reference"] for echo in echoes.json()] == ["Ezekiel 36:26"]
+        reflection = client.post(f"/api/projects/{project_id}/story-reflection", headers=headers, params={"session_id": session["id"]})
+        assert reflection.status_code == 409
 
 
 def test_account_deletion_removes_all_owned_application_data() -> None:

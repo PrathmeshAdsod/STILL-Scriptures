@@ -43,7 +43,7 @@ Reserve the final hour for signed-out link checks and the Kaggle submission.
   production-tested.
 - [x] Production browser QA passed desktop and mobile flows with zero console
   errors.
-- [x] 32 API tests, 4 web tests, typecheck, lint, and production build pass.
+- [x] 35 API tests, 5 web tests, typecheck, lint, and production build pass.
 
 ## Public package
 

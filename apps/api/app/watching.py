@@ -22,6 +22,19 @@ def contiguous_frontier(ranges: list[tuple[float, float]], *, tolerance_seconds:
     return round(frontier, 3)
 
 
+def furthest_reached(ranges: list[tuple[float, float]], *, current_position_seconds: float | None, duration_seconds: float) -> float:
+    """Return the furthest real playhead position reported by the viewer.
+
+    Watched ranges continue to prove contiguous coverage for Story Complete,
+    while this value follows deliberate seeking so a timed Echo can appear at
+    the same moment as the YouTube player.
+    """
+    candidates = [end for _, end in normalise_ranges(ranges, duration_seconds)]
+    if current_position_seconds is not None:
+        candidates.append(max(0.0, min(current_position_seconds, duration_seconds)))
+    return round(max(candidates, default=0.0), 3)
+
+
 def qualifies_for_story_complete(*, ranges: list[tuple[float, float]], duration_seconds: float, ended_naturally: bool) -> bool:
     # A seek to the ending contributes no watched coverage. Natural ended signal alone is insufficient.
     return ended_naturally and contiguous_frontier(ranges) >= max(0, duration_seconds - 2.0)

@@ -50,6 +50,7 @@ export interface ViewingSession {
   project_id: string;
   watched_ranges: Array<[number, number]>;
   contiguous_frontier_seconds: number;
+  furthest_reached_seconds: number;
   story_complete: boolean;
   ended_naturally: boolean;
   created_at: string;

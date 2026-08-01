@@ -50,8 +50,8 @@ Status: **passed in production** (2026-08-01).
   and opens the original YouTube player without another analysis.
 - Submitting the exact same YouTube URL resolves to the stored project, and the
   private account allowance remains unchanged.
-- Repeated server resume calls return the same viewing session, so watched
-  ranges and the spoiler frontier can continue across devices.
+- Repeated server resume calls return the same viewing session, so the reached
+  timestamp and continuous watched ranges can continue across devices.
 - The library is owner-scoped, and project deletion is ownership-checked.
 - A disposable verified production account returned HTTP 204 from account
   deletion, disappeared from Firebase Authentication, and its old token was
@@ -79,6 +79,14 @@ Status: **passed in production** (2026-08-01).
   production and the demo session was reset to 0:00 after QA.
 - Direct Watch/Reflection reloads now wait for Firebase session restoration,
   preventing the earlier bearer-token race.
+- A real “The Present” session exposed the difference between a selected
+  YouTube timestamp and continuous coverage: the player reached 4:17 while the
+  old unlock frontier remained 0:14. Production evidence already contained one
+  verified Ezekiel 36:26 Echo at 2:40. The gates are now separated so the
+  furthest real playhead unlocks timed Echoes, while Story Complete still
+  requires continuous coverage and a natural ending.
+- YouTube playhead polling continues while paused, so scrubbing a paused embed
+  updates STILL rather than waiting for playback to restart.
 
 ## Production browser and infrastructure checks
 
@@ -89,7 +97,8 @@ Status: **passed in production** (2026-08-01).
 - Full application-data and Firebase Authentication account deletion works.
 - Timed reflection summaries appear automatically and expand on demand into
   exact Scripture, context, attribution, and connection.
-- The private Access Pass activates and reports two daily analyses.
+- The private Access Pass activates and temporarily reports ten daily analyses;
+  reduce it to two before judge handoff.
 - Desktop and mobile layouts pass visual inspection.
 - The browser console reports zero errors during the checked flows.
 - Browser Firestore access is denied; authenticated API access is required.
@@ -99,8 +108,8 @@ Status: **passed in production** (2026-08-01).
 - Cloud Run serves 100% of traffic from the ready revision, scales to zero, and
   has maximum instances one.
 
-The acceptance run used one of that day's two Access allowances. Do not rerun a
-paid acceptance merely to refresh this document.
+The acceptance runs consume private Access allowances. Do not rerun a paid
+analysis merely to refresh this document.
 
 The Pip demonstration run used one additional allowance after the temporary
 testing limit was raised to ten. Do not rerun it; duplicate-link reuse opens the

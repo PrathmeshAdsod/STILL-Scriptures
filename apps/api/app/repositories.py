@@ -266,6 +266,11 @@ class FirestoreDataStore:
                 # Firestore rejects this representation once a range exists.
                 ranges.append((float(item[0]), float(item[1])))
         payload["watched_ranges"] = ranges
+        # Existing production sessions predate the separate reached-position
+        # field. Their honest sampled ranges already contain the furthest
+        # playhead, so migrate them safely when read.
+        if "furthest_reached_seconds" not in payload:
+            payload["furthest_reached_seconds"] = max((end for _, end in ranges), default=payload.get("contiguous_frontier_seconds", 0.0))
         return ViewingSession.model_validate(payload)
 
     async def put_project(self, project: Project) -> None:

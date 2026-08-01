@@ -31,8 +31,8 @@ notebook["cells"] = [
 ## Goal
 
 This public-safe notebook demonstrates the deterministic product rules behind
-STILL: chronological causal windows, a contiguous watched frontier, and
-reflection visibility bounded by what the viewer has actually watched.
+STILL: chronological causal windows, timed reflection visibility bounded by
+the furthest video timestamp reached, and a stricter contiguous-completion gate.
 
 It does **not** call Gemini, Gloo, YouVersion, or any cloud service. It contains
 no credential, private video, provider output, or simulated acceptance result.
@@ -95,8 +95,12 @@ def contiguous_frontier(ranges, tolerance: float = 1.5):
     return round(frontier, 3)
 
 
-def visible_echoes(echoes, frontier: float):
-    return [echo for echo in echoes if echo.knowledge_cutoff <= frontier]
+def furthest_reached(ranges, current_position: float, duration: float):
+    return round(max([min(max(current_position, 0.0), duration), *[end for _, end in ranges]]), 3)
+
+
+def visible_echoes(echoes, reached_position: float):
+    return [echo for echo in echoes if echo.knowledge_cutoff <= reached_position]
 
 
 def story_complete(ranges, duration: float, ended_naturally: bool):
@@ -127,19 +131,22 @@ windows
         """
 ### 2. Compute what the viewer genuinely knows
 
-The example includes a seek from second 31 to second 70. That later range is
-recorded, but the gap prevents it from advancing the contiguous frontier.
+The example includes a seek from second 31 to second 70. The viewer deliberately
+reached second 82, so timed Echoes through that point may appear. The gap still
+prevents the stricter contiguous frontier from advancing.
 """
     ),
     code(
         """
 sampled_ranges = normalize_ranges([(0, 18), (17.5, 31), (70, 82)], duration_seconds)
 frontier = contiguous_frontier(sampled_ranges)
+reached_position = furthest_reached(sampled_ranges, current_position=82, duration=duration_seconds)
 echoes = [Echo("quiet joke", 12), Echo("trust changes", 28), Echo("final reveal", 76)]
 
 print("normalized ranges:", sampled_ranges)
 print("contiguous frontier:", frontier)
-print("visible reflections:", [echo.label for echo in visible_echoes(echoes, frontier)])
+print("furthest reached:", reached_position)
+print("visible reflections:", [echo.label for echo in visible_echoes(echoes, reached_position)])
 """
     ),
     markdown(
@@ -171,7 +178,8 @@ provider or deployment is live.
         """
 assert windows == [(0.0, 20.0), (15.0, 35.0), (30.0, 50.0), (45.0, 65.0), (60.0, 80.0), (75.0, 90.0)]
 assert frontier == 31
-assert [echo.label for echo in visible_echoes(echoes, frontier)] == ["quiet joke", "trust changes"]
+assert reached_position == 82
+assert [echo.label for echo in visible_echoes(echoes, reached_position)] == ["quiet joke", "trust changes", "final reveal"]
 assert not story_complete(sampled_ranges, duration_seconds, ended_naturally=True)
 assert not story_complete(complete_ranges, duration_seconds, ended_naturally=False)
 assert story_complete(complete_ranges, duration_seconds, ended_naturally=True)

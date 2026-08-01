@@ -34,7 +34,7 @@ export const api = {
   deleteProject: (projectId: string) => request<void>(`/projects/${projectId}`, { method: 'DELETE' }),
   createSession: (projectId: string) => request<{ session_id: string }>(`/projects/${projectId}/viewing-sessions`, { method: 'POST' }),
   resumeSession: (projectId: string) => request<ViewingSession>(`/projects/${projectId}/viewing-sessions/resume`, { method: 'POST' }),
-  updateSession: (projectId: string, sessionId: string, payload: { ranges: Array<[number, number]>; duration_seconds: number; ended_naturally: boolean }) => request<ViewingSession>(`/projects/${projectId}/viewing-sessions/${sessionId}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  updateSession: (projectId: string, sessionId: string, payload: { ranges: Array<[number, number]>; duration_seconds: number; current_position_seconds: number; ended_naturally: boolean }) => request<ViewingSession>(`/projects/${projectId}/viewing-sessions/${sessionId}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   getEchoes: (projectId: string, sessionId: string) => request<Echo[]>(`/projects/${projectId}/echoes?session_id=${encodeURIComponent(sessionId)}`),
   getStoryReflection: (projectId: string, sessionId: string) => request<Echo[]>(`/projects/${projectId}/story-reflection?session_id=${encodeURIComponent(sessionId)}`, { method: 'POST' }),
 };

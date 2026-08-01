@@ -261,6 +261,7 @@ class ViewingSessionCreateResponse(BaseModel):
 class ViewingSessionPatch(BaseModel):
     ranges: list[tuple[float, float]]
     duration_seconds: float = Field(gt=0)
+    current_position_seconds: float | None = Field(default=None, ge=0)
     ended_naturally: bool = False
 
 
@@ -270,6 +271,7 @@ class ViewingSession(BaseModel):
     owner_id: str
     watched_ranges: list[tuple[float, float]] = Field(default_factory=list)
     contiguous_frontier_seconds: float = 0
+    furthest_reached_seconds: float = 0
     story_complete: bool = False
     ended_naturally: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

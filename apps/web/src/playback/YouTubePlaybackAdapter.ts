@@ -16,7 +16,7 @@ export class YouTubePlaybackAdapter implements PlaybackAdapter {
     await this.ensureApi();
     await new Promise<void>((resolve) => {
       this.player = new window.YT!.Player(this.element, { videoId, playerVars: { rel: 0, modestbranding: 1 }, events: {
-        onReady: () => resolve(),
+        onReady: () => { this.startTicker(); resolve(); },
         onStateChange: (event: { data: number }) => this.handleState(event.data),
       }});
     });
@@ -36,11 +36,9 @@ export class YouTubePlaybackAdapter implements PlaybackAdapter {
     const state = window.YT?.PlayerState;
     const mapped: PlaybackState = code === state?.PLAYING ? 'playing' : code === state?.ENDED ? 'ended' : 'paused';
     this.stateListeners.forEach((listener) => listener(mapped));
-    if (mapped === 'playing') this.startTicker(); else this.stopTicker();
     if (mapped === 'ended') this.endedListeners.forEach((listener) => listener());
   }
   private startTicker() { if (this.timer) return; this.timer = window.setInterval(() => { this.current = this.getCurrentTime(); this.timeListeners.forEach((listener) => listener(this.current)); }, 500); }
-  private stopTicker() { if (this.timer) window.clearInterval(this.timer); this.timer = undefined; }
   private ensureApi(): Promise<void> {
     if (window.YT?.Player) return Promise.resolve();
     return new Promise((resolve) => {

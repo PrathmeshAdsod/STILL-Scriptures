@@ -6,8 +6,9 @@ Access account before capture; never show the password, Access code, private
 handoff file, cloud consoles, or hidden tabs.
 
 Record one genuine continuous watch of Pip. In the final edit, compress the
-waiting portions and label the time compression clearly. Do not seek forward:
-the watched-frontier rule is part of the product proof.
+waiting portions and label the time compression clearly. Scrubbing is supported
+for interactive judge testing, but the continuous recording is stronger proof
+of the timed unlocks and the separate Story Complete gate.
 
 ## 0:00-0:18 - The promise
 
@@ -33,9 +34,10 @@ saved privately and the same source is never paid for twice on this account.”
 clearly labelled time-compressed edit of the continuous watch. At 2:00, capture
 the first card appearing automatically; at 3:20, capture the second card.
 
-**Voice:** “The video stays primary. A server-saved watched frontier controls
+**Voice:** “The video stays primary. A server-saved reached timestamp controls
 what may appear. At two minutes, Hebrews 12:1 unlocks. At three minutes twenty,
-Hebrews 13:16 unlocks. Seeking ahead does not create watched coverage.”
+Hebrews 13:16 unlocks. If a viewer scrubs, STILL follows the chosen video
+timestamp; full-story review still requires watching through.”
 
 ## 1:15-1:55 - Open the moat
 

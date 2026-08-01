@@ -35,7 +35,7 @@ from .schemas import (
 )
 from .tasks import CloudTasksEnqueuer, LocalTaskEnqueuer
 from .media import delete_uploaded_source, validate_upload_storage_path
-from .watching import contiguous_frontier, normalise_ranges, qualifies_for_story_complete
+from .watching import contiguous_frontier, furthest_reached, normalise_ranges, qualifies_for_story_complete
 from .worker import CausalAnalysisWorker
 from .youtube import YoutubeMetadataClient
 from .youtube import youtube_video_id
@@ -320,6 +320,14 @@ async def update_viewing_session(project_id: UUID, session_id: UUID, payload: Vi
         raise not_found("The viewing session does not exist.")
     session.watched_ranges = normalise_ranges(session.watched_ranges + payload.ranges, payload.duration_seconds)
     session.contiguous_frontier_seconds = contiguous_frontier(session.watched_ranges)
+    session.furthest_reached_seconds = max(
+        session.furthest_reached_seconds,
+        furthest_reached(
+            session.watched_ranges,
+            current_position_seconds=payload.current_position_seconds,
+            duration_seconds=payload.duration_seconds,
+        ),
+    )
     session.ended_naturally = session.ended_naturally or payload.ended_naturally
     session.story_complete = qualifies_for_story_complete(ranges=session.watched_ranges, duration_seconds=payload.duration_seconds, ended_naturally=session.ended_naturally)
     await store_for(request).put_session(session)
@@ -333,7 +341,7 @@ async def get_available_echoes(project_id: UUID, session_id: UUID, request: Requ
     if not session or session.owner_id != user_id or session.project_id != project_id:
         raise not_found("The viewing session does not exist.")
     echoes = await store_for(request).echoes(project_id)
-    return [echo for echo in echoes if echo.knowledge_cutoff_seconds <= session.contiguous_frontier_seconds + 1]
+    return [echo for echo in echoes if echo.knowledge_cutoff_seconds <= session.furthest_reached_seconds + 1]
 
 
 @app.post("/api/projects/{project_id}/story-reflection")
