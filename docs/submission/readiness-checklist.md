@@ -43,7 +43,10 @@ Reserve the final hour for signed-out link checks and the Kaggle submission.
   production-tested.
 - [x] Production browser QA passed desktop and mobile flows with zero console
   errors.
-- [x] 35 API tests, 5 web tests, typecheck, lint, and production build pass.
+- [x] The deployed always-visible Watch rail shows the live timestamp, exposes
+  only unlocked Echo markers, supports preview/revisit, and remembers its
+  on/off preference.
+- [x] 35 API tests, 8 web tests, typecheck, lint, and production build pass.
 
 ## Public package
 

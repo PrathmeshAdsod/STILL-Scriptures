@@ -32,7 +32,9 @@ saved privately and the same source is never paid for twice on this account.”
 
 **Picture:** Start Pip at 0:00. Show that no reflection is available. Use a
 clearly labelled time-compressed edit of the continuous watch. At 2:00, capture
-the first card appearing automatically; at 3:20, capture the second card.
+the first card and its timeline marker appearing automatically; hover the dot
+to preview the moment. At 3:20, capture the second card and marker. Briefly show
+the compact Moments toggle without leaving it off.
 
 **Voice:** “The video stays primary. A server-saved reached timestamp controls
 what may appear. At two minutes, Hebrews 12:1 unlocks. At three minutes twenty,

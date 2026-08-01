@@ -117,6 +117,13 @@ Status: **passed in production** (2026-08-01).
 - Full application-data and Firebase Authentication account deletion works.
 - Timed reflection summaries appear automatically and expand on demand into
   exact Scripture, context, attribution, and connection.
+- The deployed Watch rail stays visible when YouTube controls hide. On the real
+  One-Minute Time Machine project it showed the 4:00 Psalm 46:1 marker; keyboard
+  focus exposed the timestamp, tension, reference, and version, while selection
+  sought YouTube to 4:00 and opened the matching reflection.
+- Turning Moments off removed the marker without hiding the live time or
+  progress rail. The preference survived a reload, and turning it back on
+  restored the marker after the unlocked-Echo request completed.
 - The private Access Pass activates and temporarily reports ten daily analyses;
   reduce it to two before judge handoff.
 - Desktop and mobile layouts pass visual inspection.

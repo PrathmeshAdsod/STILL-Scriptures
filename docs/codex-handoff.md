@@ -24,6 +24,10 @@ rendered that Echo automatically while Story Complete remained separate.
 - Timed reflections follow the furthest player timestamp the viewer has reached,
   including deliberate scrubbing. Story Complete separately requires continuous
   watched coverage and a natural ending.
+- The Watch page owns an always-visible playback rail beneath the media. It
+  shows the live time and only already-unlocked Echo markers; hover or keyboard
+  focus previews a marker, selecting it revisits the moment and opens the full
+  reflection, and the remembered marker toggle defaults to on.
 - Gemini analyzes chronological bounded audiovisual windows with exact offsets
   and immutable prior narrative state.
 - Gloo decides Sacred Timing and may accept, hold, reject, or remain silent.
@@ -36,9 +40,9 @@ rendered that Echo automatically while Story Complete remained separate.
 
 | Area | Status |
 | --- | --- |
-| Product UI | Public landing, auth, Plans, account, add, My Videos, processing, watch, completion, and reflection flows implemented |
+| Product UI | Public landing, auth, Plans, account, add, My Videos, processing, watch, persistent moment rail, completion, and reflection flows implemented |
 | Authentication | Email/password sign-up, verification, sign-in, sign-out, password reset, and complete account deletion deployed; anonymous auth disabled |
-| API and worker | 35 API and 5 web tests pass; saved-library/session APIs are deployed; Cloud Tasks completed the abstention, Pip, The Present, and nonlinear dialogue production paths |
+| API and worker | 35 API and 8 web tests pass; saved-library/session APIs are deployed; Cloud Tasks completed the abstention, Pip, The Present, and nonlinear dialogue production paths |
 | Gemini | Live bounded full-audiovisual analysis verified |
 | Gloo | Live abstention and accepted-candidate paths verified; production candidate cap is three distinct moments |
 | YouVersion | Exact canonical passage, version, and copyright metadata verified |
