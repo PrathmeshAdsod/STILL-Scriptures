@@ -88,6 +88,26 @@ Status: **passed in production** (2026-08-01).
 - YouTube playhead polling continues while paused, so scrubbing a paused embed
   updates STILL rather than waiting for playback to restart.
 
+## Gate 5 - nonlinear dialogue and real scrub synchronization
+
+Status: **passed in production** (2026-08-01).
+
+- YouTube authoritatively reported “One-Minute Time Machine - Original 2013
+  Director's Cut” as public, embeddable, and 5:41 long.
+- The deployed worker completed 9/9 full audiovisual windows. Nine bounded
+  evidence moments became candidates; the production cap allowed Gloo to assess
+  at most three distinct strongest moments.
+- One candidate survived Sacred Timing and canonical-passage verification:
+  Psalm 46:1 at 4:00, with exact BSB text and Public Domain attribution from
+  YouVersion. The other proposed themes were not forced into Echoes.
+- A fresh production watch began at 0:00 with zero Echoes. Using the actual
+  embedded YouTube seek slider to move from 2:01 to 4:01 updated both the visible
+  player time and `furthest_reached_seconds` to 4:01; the Psalm 46:1 card appeared
+  automatically.
+- Expanding the card showed dialogue and scene evidence, canonical text,
+  attribution, and the Gloo viewer-facing explanation. The seek did not falsely
+  grant Story Complete.
+
 ## Production browser and infrastructure checks
 
 - Public landing and Plans pages render correctly signed out.

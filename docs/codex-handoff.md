@@ -14,6 +14,10 @@ The arbitrary-video cloud gate passed on the entrant's 5:58 source: 9/9 full
 audiovisual windows completed in about 84 seconds with an honest
 `READY_NO_ECHO` result. The final “Pip” run also completed 7/7 windows and
 persisted two verified timed reflections at 2:00 and 3:20.
+The 5:41 “One-Minute Time Machine” nonlinear-dialogue test completed 9/9
+audiovisual windows and persisted one verified Psalm 46:1 Echo at 4:00. A real
+production YouTube scrub from 2:01 to 4:01 advanced the reached timestamp and
+rendered that Echo automatically while Story Complete remained separate.
 
 ## Product contract
 
@@ -34,7 +38,7 @@ persisted two verified timed reflections at 2:00 and 3:20.
 | --- | --- |
 | Product UI | Public landing, auth, Plans, account, add, My Videos, processing, watch, completion, and reflection flows implemented |
 | Authentication | Email/password sign-up, verification, sign-in, sign-out, password reset, and complete account deletion deployed; anonymous auth disabled |
-| API and worker | 35 API and 5 web tests pass; saved-library/session APIs are deployed; Cloud Tasks completed the abstention, Pip, and The Present production paths |
+| API and worker | 35 API and 5 web tests pass; saved-library/session APIs are deployed; Cloud Tasks completed the abstention, Pip, The Present, and nonlinear dialogue production paths |
 | Gemini | Live bounded full-audiovisual analysis verified |
 | Gloo | Live abstention and accepted-candidate paths verified; production candidate cap is three distinct moments |
 | YouVersion | Exact canonical passage, version, and copyright metadata verified |
@@ -76,7 +80,8 @@ persisted two verified timed reflections at 2:00 and 3:20.
    exposing its password on screen.
 3. Open “The Present” from My Videos to verify the saved Ezekiel 36:26 Echo at
    2:40, or use “Pip - Small Steps, Steady Courage” for the two-Echo recording
-   path at 2:00 and 3:20.
+   path at 2:00 and 3:20. “One-Minute Time Machine” is saved as the nonlinear
+   dialogue and scrub-synchronization evidence project.
 4. Record and upload the public demo, then replace the video placeholder in the
    competition writeup.
 5. Attach the executed Kaggle notebook and public links.

@@ -43,6 +43,7 @@ and no access credential is published in the site or repository.
 | API and jobs | FastAPI on Cloud Run with Firestore and an authenticated Cloud Tasks worker |
 | Real arbitrary-video gate | The submitted 5:58 YouTube test completed 9/9 full audiovisual windows through the hosted API in about 84 seconds and ended honestly as `READY_NO_ECHO` |
 | Real reflection demos | Dogs Inc's 4:05 “Pip” produced verified Echoes at 2:00 and 3:20; “The Present” produced an exact YouVersion-backed Ezekiel 36:26 Echo at 2:40 |
+| Nonlinear dialogue stress test | The 5:41 “One-Minute Time Machine” completed 9/9 audiovisual windows and produced a verified Psalm 46:1 Echo at 4:00; a real YouTube scrub from 2:01 to 4:01 unlocked it immediately |
 | Gemini | Live bounded audiovisual analysis verified |
 | Gloo | Live structured acceptance and abstention verified; production allows at most three temporally distinct candidates per project |
 | YouVersion | Canonical passage retrieval and attribution verified for accepted Echoes |
